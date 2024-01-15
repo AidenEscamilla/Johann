@@ -6,7 +6,7 @@ class MockSongs:
     def __init__(self) -> None:
         pass
 
-    def insertToNotFound(self, songNotFound):                                                    #Maybe prob here
+    def insert_into_not_found(self, songNotFound):                                                    #Maybe prob here
         pass
 
     def insert_song(self, songDict):
@@ -30,7 +30,7 @@ class Songs:
         row = result.fetchone()
         return str(row['name'], ': ',  row['artist'])
     
-    def getAllWithLyrics(self):
+    def all_songs_with_lyrics(self):
         result = self.connection.execute('SELECT * FROM Song INNER JOIN Lyrics on Song.url = Lyrics.url WHERE length(lyrics) > 0')
         rows = result.fetchall()
         return rows
@@ -59,7 +59,7 @@ class Songs:
         else:
             return rows
 
-    def get_song_with_lyrics(self, title, artist):
+    def find_song_with_name_artist_and_lyrics(self, title, artist):
         result = self.connection.execute('SELECT * FROM Song INNER JOIN Lyrics on Song.url = Lyrics.url WHERE name = ? AND artist = ? AND length(lyrics) > 0', [title, artist])
         rows = result.fetchone()
         return rows
@@ -87,15 +87,15 @@ class Songs:
         rows = result.fetchall()
         return rows
     
-    def getTitleArtistSong(self, title, artist):
-        result = self.connection.execute('SELECT * FROM Song WHERE name = ? AND artist = ?', [title, artist])
+    def find_song_with_name_and_artist(self, name, artist):
+        result = self.connection.execute('SELECT * FROM Song WHERE name = ? AND artist = ?', [name, artist])
         rows = result.fetchone()
         return rows
     
-    def insertToNotFound(self, songNotFound):
-        result = self.connection.execute('INSERT OR REPLACE INTO Song_Not_Found VALUES( :name, :artist, :error, :url)', songNotFound)
+    def insert_into_not_found(self, song_not_found):
+        result = self.connection.execute('INSERT OR REPLACE INTO Song_Not_Found VALUES( :name, :artist, :error, :url)', song_not_found)
         self.connection.commit()
 
-    def insert_to_lyrics(self, lyricsHolder):                                                     #Maybe prob here
-        result = self.connection.execute('INSERT OR REPLACE INTO Lyrics VALUES(:lyrics, :url)', lyricsHolder)
+    def insert_into_lyrics(self, lyrics_and_url):                                                     #Maybe prob here
+        result = self.connection.execute('INSERT OR REPLACE INTO Lyrics VALUES(:lyrics, :url)', lyrics_and_url)
         self.connection.commit()

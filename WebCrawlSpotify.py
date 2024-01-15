@@ -329,11 +329,11 @@ def handle_page_not_found(url, title, artist, songDB):
     
     except urllib.error.HTTPError as e:
         notFound['error'] = 'urllib.error.HTTPError'
-        songDB.insertToNotFound(notFound)
+        songDB.insert_into_not_found(notFound)
         return '-1'
     except UnicodeEncodeError as typo:
         notFound['error'] = 'UnicodeEncodeError'
-        songDB.insertToNotFound(notFound)
+        songDB.insert_into_not_found(notFound)
         return '-1'
 
 
@@ -413,7 +413,7 @@ def generate_lyric_files(song_data_base, new_songs_list):
 
 
         temp = {'url': song.get('url'), 'lyrics': lyrics_output}
-        song_data_base.insert_to_lyrics(temp)
+        song_data_base.insert_into_lyrics(temp)
     
 
 
@@ -426,7 +426,7 @@ def create_term_frequency(song_given, song_db):
 
     #cleaned_lyrics = re.sub('!', '. ', song_given['lyrics'])
     #cleaned_lyrics = re.sub('?', '. ', cleaned_lyrics)
-    song_given = song_db.get_song_with_lyrics(song_given['name'], song_given['artist'])
+    song_given = song_db.find_song_with_name_artist_and_lyrics(song_given['name'], song_given['artist'])
     if song_given == None:
         return '-1'
     cleaned_lyrics = song_given['lyrics'].split('.')
@@ -458,7 +458,7 @@ def createTF_IDF_TfxIdf(songDB, userSongList):
     userSongRows = []
     #come back and see if this is usless with a better query
     for song in userSongList:
-        userSongRows.append(songDB.getTitleArtistSong(song['name'], song['artist']))
+        userSongRows.append(songDB.find_song_with_name_and_artist(song['name'], song['artist']))
     num_docs = int(len(userSongRows))
     print(num_docs)
     #create tf dictionaries
@@ -580,7 +580,7 @@ def lyric_recommendation(song_database, song_wanting_recommendation_for, first_t
         if answer == -1:
             return error_message
         print(answer['name'], ': ', answer['artist'])
-        lyrics_row = song_database.get_song_with_lyrics(answer['name'], answer['artist'])
+        lyrics_row = song_database.find_song_with_name_artist_and_lyrics(answer['name'], answer['artist'])
         if lyrics_row == None: #maybe bug found HERE. none lyrics slipping through sql call
             return error_message2
 
@@ -594,7 +594,7 @@ def lyric_recommendation(song_database, song_wanting_recommendation_for, first_t
         if answer == -1:
             return error_message
         print(answer['name'], ': ', answer['artist'])
-        lyrics_row = song_database.get_song_with_lyrics(answer['name'], answer['artist'])
+        lyrics_row = song_database.find_song_with_name_artist_and_lyrics(answer['name'], answer['artist'])
         if lyrics_row == None:
             return error_message2
         dataframe_recommended_song['text'] = lyrics_row['lyrics']
