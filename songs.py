@@ -92,7 +92,7 @@ class Songs:
         rows = result.fetchone()
         return rows
     
-    def insertToNotFound(self, songNotFound):                                                    #Maybe prob here
+    def insertToNotFound(self, songNotFound):
         result = self.connection.execute('INSERT OR REPLACE INTO Song_Not_Found VALUES( :name, :artist, :error, :url)', songNotFound)
         self.connection.commit()
 
