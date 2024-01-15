@@ -5,6 +5,7 @@ import ssl
 from bs4 import BeautifulSoup
 import re
 import nltk #maybe un needed
+nltk.download('punkt')
 from nltk.tokenize import sent_tokenize
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -339,20 +340,24 @@ def handle_page_not_found(url, title, artist, songDB):
 def get_soup_from_website(url, title, artist, songDB):
 
     headers = {'User-Agent': 'AppleWebKit/537.36'}
+    attempt_url = url
 
     if not url:
         return '-1' #Find out how a None object is getting here
     elif not url.isascii():
         temp = unicodedata.normalize('NFKD', url).encode('Ascii', 'ignore')
-        url = temp.decode('utf-8')    
+        attempt_url = temp.decode('utf-8')   
+        # todo: properly test this solution to the problem  
+        # Changed to attempt_url b/c handle_page_not_found was making a query a returning 'Foreign key constraint'
+        # It was trying to insert using url when I was passing it a utf-changed url
 
-    req = Request(url=url, headers=headers)
+    req = Request(url=attempt_url, headers=headers)
     #TRY CATCH 404 ERROR HERE
     try:
         html = urlopen(req).read().decode('utf-8')
         
     except urllib.error.HTTPError as errh:
-        return handle_page_not_found(url, title, artist, songDB)
+        return handle_page_not_found(url, title, artist, songDB) #make sure to pass url that's in database not the changed attempt_url
     
 
     soup = BeautifulSoup(html, features="html.parser")
