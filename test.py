@@ -68,8 +68,8 @@ def test_handle_not_found_can_find():
         fail_test()
 
 def test_spotify_album_proper_authentication():
-    os.environ["SPOTIPY_CLIENT_ID"] = "9534b2ba3dd4408fbee3d0bf3cf4d912"
-    os.environ["SPOTIPY_CLIENT_SECRET"] = "aa0326708f2f41fb90dcda386989de53"
+    os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_KEY"
+    os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
     os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"  #this will oen a browser page, follow terminal instructions
     actual = None
     try:
