@@ -304,7 +304,7 @@ def handle_page_not_found(url, title, artist, songDB):
 
     artist_url = 'https://genius.com/artists/' + artist
     req = Request(url=artist_url, headers=headers)
-    try:        #Future fix: https://genius.com/artists/{firstName}-{LastName}/songs
+    try:        #todo: https://genius.com/artists/{firstName}-{LastName}/songs
                 #li class = 'ListItem__Containter* get the href ending in lyric containing 'song title''
         html = urlopen(req).read().decode('utf-8')
         soup = BeautifulSoup(html, features="html.parser")
@@ -373,11 +373,9 @@ def get_soup_from_website(url, title, artist, songDB):
 def generate_lyric_files(song_data_base, new_songs_list):
 
     for song in new_songs_list:
-        #print('DictGet: ', songNotWorking.get(url))
         lyric_soup = get_soup_from_website(song.get('url'), song.get('name'), song.get('artist'), song_data_base)
-        
+
         if lyric_soup == '-1':       #Skip 404's
-            #print('skipped: ', url)
             continue
         
         if isinstance(lyric_soup, int):
@@ -393,10 +391,8 @@ def generate_lyric_files(song_data_base, new_songs_list):
         text = re.sub('\[[^\]]*\]', '', text)               #Delete everything between [] including brackets like '[Verse 1]', '[Chrous]', ect.
         text = re.sub('(?<=[?!])(?=[A-Z])', '. ', text)      #fixes lines that end in ?
         text = re.sub('\'(?=[A-Z])', '. ', text)         #Fixes "country" ' thats used to start a word e.x: 'Cause
-        text = re.sub('(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z])', '. \n', text)          #space out text because the <br /> is thrown away leaving words touching and hard to tokenize. 
+        text = re.sub('(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z])', '. ', text)          #space out text because the <br /> is thrown away leaving words touching and hard to tokenize. 
                                                                                         #Buuut you can seperate by capital letters because every new line they capitalize
-                                                                                        #Added \n to introduce the new line in order to give chatgpt the formatted version of the lyrics
-                                                                                        #Stanzas and new lines helps it recognize patterns, sections of ideas, and sentiment (mood and themes are the same without stanzas)
         text = text.replace('wanna', 'want to')         #Fix wanna to want to
         text = re.sub('[Cc]an\'t', 'can not', text)     #replace can't or Can't with can not because word tokenize stops reading past ' because it's not alpha
         text = text.replace('...', '. ')               #This line and the one below fix specific formatting found on the website. This fixes ellipses
@@ -410,7 +406,11 @@ def generate_lyric_files(song_data_base, new_songs_list):
         
         lyrics_output = ''
         for sentence in text:
-            lyrics_output += sentence + " "
+            lyrics_output += sentence + " " 
+        
+        #todo: Add \n to introduce the new line in order to give chatgpt the formatted version of the lyrics
+        #Stanzas and new lines helps it recognize patterns, sections of ideas, and sentiment (mood and themes are the same without stanzas)
+
 
         temp = {'url': song.get('url'), 'lyrics': lyrics_output}
         song_data_base.insert_to_lyrics(temp)
@@ -619,11 +619,9 @@ def lyric_recommendation(song_database, song_wanting_recommendation_for, first_t
         df = pd.concat([df, dfUser], ignore_index=True)
         df = pd.concat([dataframe_recommended_song, df], ignore_index=True)
         df.reset_index()
-        #print(df.head)
         #maybe don't need this variable
         X = df.text
-        #print(X[0])
-                            #making max_df high gets rid of stopwords, can play with this variable and ngrams
+                    #making max_df high gets rid of stopwords, can play with this variable and ngrams
         vectorizer = TfidfVectorizer(max_df=0.7, ngram_range=(2, 4))
         Xtfid = vectorizer.fit_transform(X)
         
@@ -688,6 +686,8 @@ def setup(databse_songs):
 
     
     new_user_songs = album_songs_list + playlist_songs_list + saved_songs_list
+
+    #todo: put in better spot that utilizes a first time flag
     #generate_lyric_files(databse_songs, new_user_songs)
 
 def main():
