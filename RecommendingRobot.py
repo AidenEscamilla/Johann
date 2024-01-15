@@ -112,8 +112,8 @@ def main():
 
 
 if __name__ == '__main__':
-    os.environ["SPOTIPY_CLIENT_ID"] = "9534b2ba3dd4408fbee3d0bf3cf4d912"
-    os.environ["SPOTIPY_CLIENT_SECRET"] = "aa0326708f2f41fb90dcda386989de53"
+    os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_KEY"
+    os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
     os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"
 
     main()
