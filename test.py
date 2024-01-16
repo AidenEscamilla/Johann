@@ -70,7 +70,7 @@ def test_handle_not_found_can_find():
 def test_spotify_album_proper_authentication():
     os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_KEY"
     os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
-    os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"  #this will oen a browser page, follow terminal instructions
+    os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"  #this will open a browser page, follow terminal instructions
     actual = None
     try:
         actual = WebCrawlSpotify.get_spotify_albums()
@@ -147,7 +147,8 @@ def test_get_album_songs_returns_songs():
     if songs:
         pass_test()
 
-# def test_all_albums_returns_no_data():
+# todo:
+#     def test_all_albums_returns_no_data():
 #     album_ids = ['nope', 'bad']
 #     songDB = MockSongs()
 
@@ -169,6 +170,7 @@ if __name__ == '__main__':
     test_spotify_album_bad_authentication()
     test_get_albums_outputs_populated_list()
     test_all_albums_returns_some_data()
-    #test_all_albums_returns_no_data() work in progress (wip)
     test_invalid_album_id()
     test_get_album_songs_returns_songs()
+    #test_all_albums_returns_no_data() work in progress (wip)
+

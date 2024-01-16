@@ -10,29 +10,19 @@ from WebCrawlSpotify import lyric_recommendation
 from WebCrawlSpotify import setup
 
 
-#class Classifyer:
-#    def __init__(self, connection):
-#        self.connection = connection
-
-    #def getCategory(category):
-
-
 def random_classifier(song_database):
     song = input('Enter a song (e.x Radioactive by Imagine Dragons): ')
+
     while len(song) <= 1:
         song = input('Please enter a valid song: ')
 
     song_data = song.split(" by ")
-    #store it
-    #print(songData)
     song_artist = song_data[0]
     song_title = song_data[1]
-    #print it / testing
+
     print('you entered: ', song_title, ':', song_artist)
 
-
     result = song_database.get_random_rows()
-    #result = connection.execute('SELECT * FROM Song ORDER BY RANDOM() LIMIT 5')
     print('\nHere are some random songs you might like!\n')
     for row in result:
         print(row['name'], ': ', row['artist'])
@@ -43,11 +33,11 @@ def category_classifier(song_database):
     #uncomment this block if you're starting the data base from scratch!
     
     #Add arbitraty categories
-    song_database.connection.execute('Update Song SET Category = NULL')
-    all = song_database.get_all_songs()
-    for row in all:
-        song_database.connection.execute('UPDATE Song SET Category = ? WHERE url = ?', [random.choice(categories), row['url']])
-    song_database.connection.commit()
+    # song_database.connection.execute('Update Song SET Category = NULL')
+    # all = song_database.get_all_songs()
+    # for row in all:
+    #     song_database.connection.execute('UPDATE Song SET Category = ? WHERE url = ?', [random.choice(categories), row['url']])
+    # song_database.connection.commit()
     
     #Re comment above here
     print('Enter a category for song recommendations:\n\n')
@@ -59,10 +49,7 @@ def category_classifier(song_database):
     if result == -1:
         return '\nI couldn\'t find that category\n'
 
-
-
     print('\nHere are some',category, 'songs you might like!\n')
-    numOutput = 10 #todo delete later, seems unneeded
     for row in random.choices(result, k=10):
         print(row['name'], ': ', row['artist'])
     
@@ -108,7 +95,6 @@ def main():
             print('Okay have a good day!')
             break
     quit()
-
 
 
 if __name__ == '__main__':
