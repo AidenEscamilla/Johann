@@ -6,3 +6,15 @@ tryingArtist.txt
 *.pickle
 __pycache__/
 *.py[cod]
+
+# ignore python virtual environment files
+.venv
+
+# playing with public models in this file
+embeddings.py
+
+# ignore files in testing 
+# (used to figure code out before merging into main recommendation files)
+testing/
+
+debugging_output.txt
