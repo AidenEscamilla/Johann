@@ -103,7 +103,7 @@ class Songs:
                         WHERE name ILIKE %s AND artist ILIKE %s AND length(lyrics) > 0', (title, artist,))
         result = cursor.fetchone()
 
-        if len(result >= 4):
+        if len(result) >= 4:
             result_dict = {
                     'lyrics' : result[0],
                     'artist' : result[1],
