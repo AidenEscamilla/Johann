@@ -1,8 +1,3 @@
-import os
-import sys  # to get the system parameter
-import re
-import sqlite3
-import ssl
 import random
 
 from songs import Songs
@@ -26,34 +21,6 @@ def random_classifier(song_database):
     print('\nHere are some random songs you might like!\n')
     for row in result:
         print(row['name'], ': ', row['artist'])
-
-def category_classifier(song_database):
-
-    categories = ['rock', 'pop', 'disco', 'piano', 'scremo', 'ska', 'jazz']
-    #uncomment this block if you're starting the data base from scratch!
-    
-    #Add arbitraty categories
-    # song_database.connection.execute('Update Song SET Category = NULL')
-    # all = song_database.get_all_songs()
-    # for row in all:
-    #     song_database.connection.execute('UPDATE Song SET Category = ? WHERE url = ?', [random.choice(categories), row['url']])
-    # song_database.connection.commit()
-    
-    #Re comment above here
-    print('Enter a category for song recommendations:\n\n')
-    for cat in categories:
-        print(cat)
-    
-    category = input("Type Category: ").lower()
-    result = song_database.get_category_rows(category)
-    if result == -1:
-        return '\nI couldn\'t find that category\n'
-
-    print('\nHere are some',category, 'songs you might like!\n')
-    for row in random.choices(result, k=10):
-        print(row['name'], ': ', row['artist'])
-    
-    return 'Finished category execution Properly'
 
 
 def lyric_classifier(song_database, first_time_flag):
@@ -80,12 +47,10 @@ def main():
 
     while True:
         print('Choose how you\'d like your recommendations!\n')
-        classifier_choice = input('1. random\n2. by category\n3. by lyrics\n(type 1, 2, or 3): ')
+        classifier_choice = input('1. random\n2. by lyrics\n(type 1, or 2): ')
         if classifier_choice == '1':
             random_classifier(song_db)
         elif classifier_choice == '2':
-            print(category_classifier(song_db))
-        elif classifier_choice == '3':
             lyric_classifier(song_db, first_time)
             first_time = False
 
@@ -98,8 +63,4 @@ def main():
 
 
 if __name__ == '__main__':
-    os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_KEY"
-    os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
-    os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"
-
     main()
