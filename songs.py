@@ -168,14 +168,15 @@ class Songs:
 
     def insert_song(self, songDict):
         cursor = self.connection.cursor()
-        row_info = (songDict['url'], songDict['name'], songDict['artist'])
+        row_info = (songDict['url'], songDict['name'], songDict['artist'], songDict['spot_id'])
 
-        cursor.execute('INSERT INTO songs(url, name, artist) \
-                        VALUES(%s, %s, %s) \
+        cursor.execute('INSERT INTO songs(url, name, artist, spot_id) \
+                        VALUES(%s, %s, %s, %s) \
                         ON CONFLICT(url) DO UPDATE SET \
                         url = EXCLUDED.url, \
                         name = EXCLUDED.name, \
-                        artist = EXCLUDED.artist', row_info)
+                        artist = EXCLUDED.artist, \
+                        spot_id = EXCLUDED.spot_id', row_info)
 
         self.connection.commit()
 

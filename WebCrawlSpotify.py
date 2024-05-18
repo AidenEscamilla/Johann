@@ -248,7 +248,8 @@ Goes through all the songs on an album and adds their info to the songs list.
 (should return the list. Seems the songs list is passes by reference. \
 Less coding for me, raises concerns to check into, but seems to be working)
 '''
-def get_album_songs(sp, album, songs):  #borken?
+def get_album_songs(sp, album):  #borken?
+    songs_from_spotify = []
     more_songs = True   # Flag for while loop
     offset = 0
 
@@ -259,14 +260,16 @@ def get_album_songs(sp, album, songs):  #borken?
             if item['is_local']:    #Skip local files
                 continue
 
-            temp = {'name': item['name'], 'artist': item['artists'][0]['name']} # get name and artist
-            songs.append(temp)  # add to list
+            temp = {'name': item['name'], 'artist': item['artists'][0]['name'], 'spot_id': item['id']} # get name and artist
+            songs_from_spotify.append(temp)  # add to list
 
         if len(results['items']) < 10:  # no more songs, break while loop (old comment said this was broken?)
             offset = 0
             more_songs = False
         else:
             offset += 10    # Continue to find next 10 sings
+    
+    return songs_from_spotify
 
 '''
 Takes the list of all album ids
@@ -275,21 +278,33 @@ And runs them through processing
 Returns the list of songs with their found urls (to later find lyrics for them)
 '''        
 def get_all_album_songs(album_ids, song_db):
-    songs = []
+    total_songs = []
     scope = "user-library-read"
 
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
     for album in album_ids:
-        get_album_songs(sp, album, songs)
+        songs = get_album_songs(sp, album)
+
+        for song in songs:
+            total_songs.append(song)
+
 
     #make a set of songs before processing
     #todo: make this a single line function/ google set function
     songs_set = []
-    for song in songs:
+    for song in total_songs:
         if not song in songs_set:
             songs_set.append(song)
-
-    process_songs(songs_set, song_db) #todo: next to unit test   
+    
+    for song in songs_set:
+        print(f"Song:{song}")
+        info = song_db.search_user_song_by_title_and_artist(song['name'], song['artist'])
+        if info != -1:
+            song['url'] = info['url']
+            song_db.insert_song(song)
+        else:
+            print(f"ISSUE# {song.get('name')}:{song.get('artist')}")
+   #process_songs(songs_set, song_db) #todo: next to unit test   
     return songs
 
 '''
@@ -334,13 +349,13 @@ def get_playlist_songs(playlist_id_list, song_db):
     for playlist in playlist_id_list:   # For every playlist
         
         while more_songs:
-            results = sp.playlist_tracks(playlist_id=playlist, fields='items(track(name,artists(name)))', limit=10, offset=my_offset)   # Get songs from playlist
+            results = sp.playlist_tracks(playlist_id=playlist, fields='items(track(id,name,artists(name)))', limit=10, offset=my_offset)   # Get songs from playlist
             
             for item in results['items']:
                 if not item['track']: #skip empty tracks
                     continue
 
-                temp = {'name': item['track']['name'], 'artist': item['track']['artists'][0]['name']}   # Format the song from spotify -> dict
+                temp = {'name': item['track']['name'], 'artist': item['track']['artists'][0]['name'], 'spot_id': item['track']['id']}   # Format the song from spotify -> dict
                 songs.append(temp)  # Add song to list
         
             if len(results['items']) < 10:
@@ -383,7 +398,7 @@ def get_spotify_songs(song_db):
 
         for item in results['items']:   # For every song
             track = item['track']
-            temp = {'name': track['name'], 'artist': track['artists'][0]['name']}   # Format spotify song -> dict
+            temp = {'name': track['name'], 'artist': track['artists'][0]['name'], 'spot_id': track['id']}   # Format spotify song -> dict
             songs.append(temp)  # Add to list
         
         if len(results['items']) < 10:  # Todo: This should be changed to 25. Too scared to change it right now
@@ -595,7 +610,7 @@ def setup(database_songs):
 
 def main():
     song_db = Songs()
-    #setup(song_db)
+    # setup(song_db)
     
     quit()
     
