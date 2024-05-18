@@ -43,7 +43,7 @@ class Songs:
 
     def all_songs_with_lyrics(self):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT songs.url, name, artist, embedding, lyrics FROM songs INNER JOIN lyrics on songs.url = lyrics.url WHERE length(lyrics) > 0')
+        cursor.execute('SELECT songs.url, name, artist, lyrics FROM songs INNER JOIN lyrics on songs.url = lyrics.url WHERE length(lyrics) > 0')
         return cursor.fetchall()
     
 
@@ -147,19 +147,31 @@ class Songs:
     
     def get_all_embeddings(self):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE embedding IS NOT NULL')
+        cursor.execute('SELECT s.url, s.name, s.artist, oai.embedding \
+                        FROM songs as s \
+                        INNER JOIN open_ai_data as oai \
+                        ON s.url = oai.url  \
+                        WHERE embedding IS NOT NULL')
         results = cursor.fetchall()
         return results
     
     def get_all_summary_embeddings(self):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE summary_embedding IS NOT NULL')
+        cursor.execute('SELECT s.url, s.name, s.artist, oai.summary_embedding \
+                        FROM songs as s \
+                        INNER JOIN open_ai_data as oai \
+                        ON s.url = oai.url  \
+                        WHERE summary_embedding IS NOT NULL')
         results = cursor.fetchall()
         return results
     
     def get_all_song_summaries(self):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT url, name, artist, summary FROM songs WHERE summary IS NOT NULL')
+        cursor.execute('SELECT s.url, s.name, s.artist, oai.summary \
+                        FROM songs as s \
+                        INNER JOIN open_ai_data as oai \
+                        ON s.url = oai.url  \
+                        WHERE summary IS NOT NULL')
         results = cursor.fetchall()
         return results
     
@@ -183,7 +195,7 @@ class Songs:
     def insert_embedding(self, embedding_dict):
         cursor = self.connection.cursor()
 
-        cursor.execute('INSERT INTO songs(url, embedding) \
+        cursor.execute('INSERT INTO open_ai_data(url, embedding) \
                         VALUES(%s, %s) \
                         ON CONFLICT(url) DO UPDATE SET \
                         embedding = EXCLUDED.embedding', [embedding_dict['url'], embedding_dict['embedding']])
@@ -193,7 +205,7 @@ class Songs:
     def insert_summary_embedding(self, embedding_dict):
         cursor = self.connection.cursor()
 
-        cursor.execute('INSERT INTO songs(url, summary_embedding) \
+        cursor.execute('INSERT INTO open_ai_data(url, summary_embedding) \
                         VALUES(%s, %s) \
                         ON CONFLICT(url) DO UPDATE SET \
                         summary_embedding = EXCLUDED.summary_embedding', [embedding_dict['url'], embedding_dict['embedding']])
@@ -203,12 +215,23 @@ class Songs:
     def insert_summary(self, summary_dict):
         cursor = self.connection.cursor()
 
-        cursor.execute('INSERT INTO songs(url, summary) \
+        cursor.execute('INSERT INTO open_ai_data(url, summary) \
                         VALUES(%s, %s) \
                         ON CONFLICT(url) DO UPDATE SET \
                         summary = EXCLUDED.summary', [summary_dict['url'], summary_dict['summary']])
 
         self.connection.commit()
+
+    def add_cluster_to_song(self, url, cluster_number):
+        cursor = self.connection.cursor()
+
+        cursor.execute('INSERT INTO songs(url, cluster) \
+                       VALUES(%s, %s) \
+                       ON CONFLICT(url) DO UPDATE SET \
+                       cluster = EXCLUDED.cluster', [url, cluster_number])
+        
+        self.connection.commit()
+
 
     ''' Takes a dict {url : url-example.com, lyrics : 'These are cool lyrics'}'''
     def insert_into_lyrics(self, lyrics_and_url):                                                     #Maybe prob here
