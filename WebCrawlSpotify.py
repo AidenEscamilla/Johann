@@ -462,8 +462,9 @@ def generate_lyric_files(song_data_base, new_songs_list):
         if lyrics == None:       #Skip 404's
             continue
         
+        lyrics = anyascii(lyrics)   # EDIT: convert lyrics with anyascii (untested but should work) This prevents pesky \u2005 spaces
         temp = {'url': found_song.get('url'), 'lyrics': lyrics} # format to dict for db input
-        song_data_base.insert_into_lyrics(temp) # input lyrics into the dict
+        song_data_base.insert_into_lyrics(temp) # input lyrics into the dict 
 
 '''
 Takes the song databse client, song being searched by user, and a first time flag

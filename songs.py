@@ -43,7 +43,7 @@ class Songs:
 
     def all_songs_with_lyrics(self):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT songs.url, name, artist, embeddings, lyrics FROM songs INNER JOIN lyrics on songs.url = lyrics.url WHERE length(lyrics) > 0')
+        cursor.execute('SELECT songs.url, name, artist, embedding, lyrics FROM songs INNER JOIN lyrics on songs.url = lyrics.url WHERE length(lyrics) > 0')
         return cursor.fetchall()
     
 
@@ -81,16 +81,15 @@ class Songs:
             cursor.execute('SELECT * FROM songs WHERE name ILIKE %s AND artist ILIKE %s',('%'+half_input+'%', artist,))
             result = cursor.fetchone()
         
-
         if result == None:  # If still no result
             return -1
         else:
             result_dict = {
                 'url' : result[0],
                 'name' : result[1],
-                'artist' : result[2]
+                'artist' : result[2],
+                'embedding' : result[3]
             }
-            print("RESULTYYYY: ", result_dict)
             return result_dict
         
 
@@ -135,6 +134,35 @@ class Songs:
         result = cursor.fetchall()
         return result
     
+    def get_random_song_with_lyrics(self, limit):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT s.url, s.name, s.artist, l.lyrics, s.embedding \
+                       FROM songs as s \
+                       INNER JOIN lyrics as l ON s.url = l.url \
+                       WHERE LENGTH(l.lyrics) > 0 \
+                       ORDER BY random() \
+                       LIMIT %s::integer', [limit])
+        results = cursor.fetchall()
+        return results
+    
+    def get_all_embeddings(self):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM songs WHERE embedding IS NOT NULL')
+        results = cursor.fetchall()
+        return results
+    
+    def get_all_summary_embeddings(self):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM songs WHERE summary_embedding IS NOT NULL')
+        results = cursor.fetchall()
+        return results
+    
+    def get_all_song_summaries(self):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT url, name, artist, summary FROM songs WHERE summary IS NOT NULL')
+        results = cursor.fetchall()
+        return results
+    
     
     ##### Insert functions
 
@@ -148,6 +176,36 @@ class Songs:
                         url = EXCLUDED.url, \
                         name = EXCLUDED.name, \
                         artist = EXCLUDED.artist', row_info)
+
+        self.connection.commit()
+
+    def insert_embedding(self, embedding_dict):
+        cursor = self.connection.cursor()
+
+        cursor.execute('INSERT INTO songs(url, embedding) \
+                        VALUES(%s, %s) \
+                        ON CONFLICT(url) DO UPDATE SET \
+                        embedding = EXCLUDED.embedding', [embedding_dict['url'], embedding_dict['embedding']])
+
+        self.connection.commit()
+    
+    def insert_summary_embedding(self, embedding_dict):
+        cursor = self.connection.cursor()
+
+        cursor.execute('INSERT INTO songs(url, summary_embedding) \
+                        VALUES(%s, %s) \
+                        ON CONFLICT(url) DO UPDATE SET \
+                        summary_embedding = EXCLUDED.summary_embedding', [embedding_dict['url'], embedding_dict['embedding']])
+
+        self.connection.commit()
+
+    def insert_summary(self, summary_dict):
+        cursor = self.connection.cursor()
+
+        cursor.execute('INSERT INTO songs(url, summary) \
+                        VALUES(%s, %s) \
+                        ON CONFLICT(url) DO UPDATE SET \
+                        summary = EXCLUDED.summary', [summary_dict['url'], summary_dict['summary']])
 
         self.connection.commit()
 
