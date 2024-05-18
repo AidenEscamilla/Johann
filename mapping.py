@@ -74,8 +74,8 @@ def add_kmeans_cluster_labels_to_df(df):
   return df
 
 def add_cluster_labels_to_database(labeled_df, database_client):
-  print("Hello")
-
+  for ind in labeled_df.index:
+    database_client.add_cluster_to_song(labeled_df['url'][ind], int(labeled_df['cluster'][ind]))
 
 def display_plots(df):
   # Set figsize of plots
