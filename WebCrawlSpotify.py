@@ -293,18 +293,10 @@ def get_all_album_songs(album_ids, song_db):
     #todo: make this a single line function/ google set function
     songs_set = []
     for song in total_songs:
-        if not song in songs_set:
+        if not (song in songs_set or song_db.is_song_in_database(song['spot_id'])):
             songs_set.append(song)
     
-    for song in songs_set:
-        print(f"Song:{song}")
-        info = song_db.search_user_song_by_title_and_artist(song['name'], song['artist'])
-        if info != -1:
-            song['url'] = info['url']
-            song_db.insert_song(song)
-        else:
-            print(f"ISSUE# {song.get('name')}:{song.get('artist')}")
-   #process_songs(songs_set, song_db) #todo: next to unit test   
+    process_songs(songs_set, song_db) #todo: next to unit test   
     return songs
 
 '''
@@ -370,7 +362,7 @@ def get_playlist_songs(playlist_id_list, song_db):
     #todo: use function/solution found in above todo
     set_maker = []
     for song in songs:
-        if not song in set_maker:
+        if not (song in songs or song_db.is_song_in_database(song['spot_id'])):
             set_maker.append(song)
 
     songs = set_maker   #tested, it works
@@ -399,7 +391,8 @@ def get_spotify_songs(song_db):
         for item in results['items']:   # For every song
             track = item['track']
             temp = {'name': track['name'], 'artist': track['artists'][0]['name'], 'spot_id': track['id']}   # Format spotify song -> dict
-            songs.append(temp)  # Add to list
+            if not song_db.is_song_in_database(temp['spot_id']):
+                songs.append(temp)  # Add to list
         
         if len(results['items']) < 10:  # Todo: This should be changed to 25. Too scared to change it right now
             more_songs = False

@@ -95,6 +95,15 @@ class Songs:
 
         ##### Databse search functions
 
+    def is_song_in_database(self, spot_id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM songs WHERE spot_id = %s', [spot_id])
+        result = cursor.fetchone()
+        if result:
+            return True
+        else:
+            return False
+
     def find_song_with_name_artist_and_lyrics(self, title, artist):
         cursor = self.connection.cursor()
         cursor.execute('SELECT lyrics.lyrics, songs.artist, songs.name, songs.url \
