@@ -5,10 +5,75 @@ from ast import literal_eval
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
 import hdbscan
 import sys
 from songs import Songs # my class file
 from spot_oath import get_fresh_spotify_client
+from openai import OpenAI
+import os
+
+
+def get_playlist_title_description(embeddings_df, cluster_summaries):
+  ai_model = "gpt-3.5-turbo"
+  cluster_labels = set(embeddings_df['cluster'].to_list())
+  cluster_labels.remove(-1) # Remove noise cluster
+  playlist_data = {}
+  SYSTEM_SETUP = '''
+  Synthesize a 3-to-8 word title and 20 word playlist description of the following few paragraphs. Focus on the morals and themes described in the paragraphs. Don't say poem.
+
+  Example output: 
+  Title: <3-to-8 word response>
+  Description: <20 word response>
+
+  Paragraphs to analyze:
+  '''
+  client = OpenAI(
+    # This is the default and can be omitted
+    api_key=os.environ.get("OPENAI_API_KEY"),
+  )
+
+  for cluster in cluster_labels:  # for every cluster
+    cluster_summary = cluster_summaries[cluster]  # get the joined summary
+    response = client.chat.completions.create(  # Hit api for response
+      model= ai_model,
+      messages=[
+        {"role": "system", "content": SYSTEM_SETUP},
+        {"role": "user", "content": cluster_summary}
+      ]
+    )
+
+    # Extract the AI output embedding as a list of floats
+    text = response.choices[0].message.content
+    temp = text.split('\n')
+    title = temp[0].split(':')[-1]  # Last element after ':'
+    description = temp[1].split(':')[-1]
+    playlist_data[cluster] = {'title': title, 'description': description} # Add to results dict
+
+  return playlist_data
+
+def get_cluster_summaries(cluster_df):
+  cluster_summaries = {}
+  cluster_labels = set(cluster_df['cluster'].to_list())
+  cluster_labels.remove(-1) # remove noise cluster
+
+  for cluster in cluster_labels:  # for every cluster
+    cluster_songs = cluster_df[cluster_df['cluster'] == cluster]  #get the cluster songs
+    cluster_center = get_cluster_center(cluster_songs[['x','y']], cluster)  # calc the center
+    nearest_points_indices = get_nearest_points(cluster_center, cluster_songs[['x','y']], 4)  # Get 4 nearest points
+    nearest_df_rows = cluster_songs.loc[nearest_points_indices] # get the corresponding rows from the df
+    cluster_summary = '\n\n'.join(nearest_df_rows['summary'].values)  # join summaries
+    cluster_summaries[cluster] = cluster_summary  #Add to dict
+
+  return cluster_summaries
+
+# Compute the center of each cluster
+def get_cluster_center(points_in_cluster, cluster_label):
+  if cluster_label == -1 or len(points_in_cluster) == 0:  # noise points
+    return None
+  else:
+    center = points_in_cluster.mean(axis=0)
+    return center
 
 
 def is_positive_int(var):
@@ -20,20 +85,23 @@ def get_dataframe(song_db, df, spotify_client):
   urls = []
   names = []
   artists = []
-  embeddings = []
+  summary_embeddings = []
+  summaries = []
 
   results = song_db.get_all_user_summary_embeddings(user_id)
   for song in results:  # format all song info for df
     urls.append(song[0])
     names.append(song[1])
     artists.append(song[2])
-    embeddings.append(song[3])
+    summary_embeddings.append(song[3])
+    summaries.append(song[4])
 
   # Add song info to df
   df['url'] = urls
   df['name'] = names
   df['artist'] = artists
-  df['embedding'] = embeddings
+  df['embedding'] = summary_embeddings
+  df['summary'] = summaries
   print(df.head()) # Check dataframe
   return df
 
@@ -84,6 +152,12 @@ def add_cluster_labels_to_database(labeled_df, database_client):
   for ind in labeled_df.index:
     database_client.add_cluster_to_song(labeled_df['url'][ind], int(labeled_df['cluster'][ind]))
 
+def add_cluster_info_to_database(playlists_info, database_client, spotify_client):
+  user_id = spotify_client.me()['id']
+  database_client.clear_user_cluster_info(user_id)  # B/c clusters are made every run and are varying, delete all the old cluster info before inserting
+  for cluster, playlist_data in playlists_info.items():
+    database_client.insert_user_cluster_info(user_id, cluster, playlist_data)
+
 def display_plots(df):
   # Set figsize of plots
   fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,8))
@@ -97,7 +171,11 @@ def display_plots(df):
   ax2.set_title('Clusters')
   plt.show()  # Display
 
-
+def get_nearest_points(center, points, n=6):
+    distances = cdist([center], points, 'euclidean')[0]
+    nearest_indices = np.argsort(distances)[:n]
+    nearest_points = points.iloc[nearest_indices]
+    return nearest_points.index
 
 def main():
   db_client = Songs()
@@ -112,11 +190,15 @@ def main():
   else:
     if len(sys.argv) == 4:
       embeddings_df = add_density_cluster_labels_to_df(embeddings_df, int(sys.argv[2]), int(sys.argv[3]))
-    else:
+    else: # can only be --dense because of the command line commands
       add_density_cluster_labels_to_df(embeddings_df)
 
-
+  # Use 6 most middle summaries to create a title and description
+  cluster_summaries = get_cluster_summaries(embeddings_df)
+  playlists_data = get_playlist_title_description(embeddings_df, cluster_summaries)
+  
   add_cluster_labels_to_database(embeddings_df, db_client)
+  add_cluster_info_to_database(playlists_data, db_client, spot_client)
   display_plots(embeddings_df)
 
 
