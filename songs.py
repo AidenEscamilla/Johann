@@ -180,7 +180,48 @@ class Songs:
                         FROM songs as s \
                         INNER JOIN open_ai_data as oai \
                         ON s.url = oai.url  \
-                        WHERE summary IS NOT NULL')
+                        WHERE summary IS NOT NULL AND summary_embedding IS NULL')
+        results = cursor.fetchall()
+        return results
+    
+    def get_song_openai_data(self, url):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * \
+                        FROM open_ai_data as oai \
+                        WHERE url = %s', [url])
+        results = cursor.fetchone()
+        return results
+    
+
+    def get_oath_token(self, access_token):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * \
+                        FROM oath_flow \
+                        WHERE access_token = %s', [access_token])
+        result = cursor.fetchone()
+
+        if len(result) == 7:
+            result_dict = {
+                    # Skip [0] because it's the user_id
+                    'access_token' : result[1],
+                    'token_type' : result[2],
+                    'expires_in' : result[3],
+                    'scope' : result[4],
+                    'expires_at' : result[5],
+                    'refresh_token' : result[6],
+                }
+        else:
+            result_dict = None
+
+        return result_dict
+    
+    def get_all_user_cluster_songs(self, user_id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT s.spot_id, oai.summary, s.cluster \
+                        FROM songs as s \
+                        INNER JOIN user_songs as us ON s.url = us.url \
+                        INNER JOIN open_ai_data as oai ON s.url = oai.url \
+                        WHERE us.user_id = %s AND s.cluster IS NOT NULL', [user_id])
         results = cursor.fetchall()
         return results
     
