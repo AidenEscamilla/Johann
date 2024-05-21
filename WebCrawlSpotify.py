@@ -33,6 +33,7 @@ import os
 import pickle
 import sqlite3
 from statistics import mode, median, mean
+from spot_oath import create_oath_token, refresh_user_oath_token
 
 '''
 Define options for the dynamic web scraper
@@ -69,10 +70,11 @@ Processes the songs one at a time by constructing a Genius.com search url
 Scrapes the url for a link matching the song & artist
 Saves that url in the database as the "correct" url that has lyrics
 '''
-def process_songs(song_list, song_db):
+def process_songs(song_list, song_db, spotify_client):
     WAIT_TIME = 15
     SLEEP_TIME = 15
     base_url = "https://genius.com/search?q="
+    user_id = spotify_client.me()['id']
 
 
     driver = webdriver.Chrome(options=get_options())
@@ -136,10 +138,11 @@ def process_songs(song_list, song_db):
                 print('FOUND:', link_str)
                 song['url'] = link_str
                 db.insert_song(song)
+                db.insert_user_song(user_id, song['url'])
                 break # only insert 1 song ()
         
         if not found_lyrics_first_try:  #retry song
-            retry_finding_song(song, driver, db)
+            retry_finding_song(song, driver, db, user_id)
         
     driver.quit()   # close chrome driver/scraper
 
@@ -149,9 +152,10 @@ Takes the song we're searching for, the driver we're using, and the database
 Tries the same processing_song approach, but truncates the artist from the initial search
 Currently does not do any title or artist clean up, maybe it should
 '''
-def retry_finding_song(song_dict, chrome_driver, database):
+def retry_finding_song(song_dict, chrome_driver, database, spotify_user_id):
     title = song_dict.get('name')
     artist = song_dict.get('artist')
+    spot_id = song_dict.get('spot_id')
 
     # clean title
     title = anyascii(title)    # these are from spotify, not ascii guaranteed
@@ -191,13 +195,14 @@ def retry_finding_song(song_dict, chrome_driver, database):
             found_lyrics_on_retry = True    # Change flag to skip "not_found"
             song_dict['url'] = link_str_retry
             database.insert_song(song_dict) # Insert what we found
+            database.insert_user_song(spotify_user_id, song_dict['url'])
             break # only insert 1 song ()
     
     if not found_lyrics_on_retry:   # If flag -> add to "not_found" for later analysis
         song_dict['url'] = base_url + text_encoded  # add url
         song_dict['error'] = "No URL found" # Craft an "error"
         database.insert_into_not_found(song_dict)
-
+    
 
 '''
 DEPRECIATED
@@ -206,7 +211,7 @@ Puts them in a set and returns the set
 '''
 def get_spotify_artists(track_limit):
     artist = []
-    scope = "user-library-read"
+    scope = "user-library-read,playlist-read-private,playlist-modify-public"
     
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
     results = sp.current_user_saved_tracks(limit=track_limit) 
@@ -222,16 +227,14 @@ Gets all the albums a user follows on Spotify
 Goes through adding their id's to a set 10 at a time
 Returns the list of ids
 '''
-def get_spotify_albums():
+def get_spotify_albums(spotify_client):
     album_ids = []
     album_offset = 0
     more_albums = True  # Flag for while loop
     scope = "user-library-read"
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
-
     while more_albums:
-        results = sp.current_user_saved_albums(limit=10, offset=album_offset)
+        results = spotify_client.current_user_saved_albums(limit=10, offset=album_offset)
         if len(results['items']) < 10:  # < 10 means we're at the end off the list
             more_albums = False # Stop while loop
 
@@ -257,7 +260,7 @@ def get_album_songs(sp, album):  #borken?
         results = sp.album_tracks(album_id=album, limit=10, offset=offset)  # get songs 10 at a time
         
         for item in results['items']:
-            if item['is_local']:    #Skip local files
+            if item['is_local'] or item['id'] == None:    #Skip local files amd such
                 continue
 
             temp = {'name': item['name'], 'artist': item['artists'][0]['name'], 'spot_id': item['id']} # get name and artist
@@ -277,42 +280,36 @@ Gets their songs
 And runs them through processing
 Returns the list of songs with their found urls (to later find lyrics for them)
 '''        
-def get_all_album_songs(album_ids, song_db):
+def get_all_album_songs(album_ids, song_db, spotify_client):
     total_songs = []
-    scope = "user-library-read"
+    spotify_user_id = spotify_client.me()['id']
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
     for album in album_ids:
-        songs = get_album_songs(sp, album)
+        songs = get_album_songs(spotify_client, album)
 
         for song in songs:
-            total_songs.append(song)
-
-
-    #make a set of songs before processing
-    #todo: make this a single line function/ google set function
-    songs_set = []
-    for song in total_songs:
-        if not (song in songs_set or song_db.is_song_in_database(song['spot_id'])):
-            songs_set.append(song)
+            search_params = {'name' : song['name'], 'artist' : song['artist'], 'spot_id': song['spot_id']}
+            if song_db.is_song_in_database(search_params):
+                if not song_db.is_song_in_not_found(search_params):   # Meaning the song is in the 'found' db already
+                    song_info = song_db.find_song(search_params)
+                    song_db.insert_user_song(spotify_user_id, song_info['url'])   # Insert it for the user
+            else:
+                total_songs.append(song)
     
-    process_songs(songs_set, song_db) #todo: next to unit test   
+    process_songs(total_songs, song_db, spotify_client) #todo: next to unit test   
     return songs
 
 '''
 Get all the playlist a user follows (I think this includes user made playlists)
 Returns a list of the playlist id's
 '''
-def get_spotify_playlists():
+def get_spotify_playlists(spotify_client):
     more_playlists = True   # Flag for while loop
     my_offset = 0
     playlists_ids = []
-    scope = "playlist-read-private"
-
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
 
     while more_playlists:
-        results = sp.current_user_playlists(limit=10, offset=my_offset) # Get playlists 10 at a time
+        results = spotify_client.current_user_playlists(limit=10, offset=my_offset) # Get playlists 10 at a time
         
         if len(results['items']) < 10:  # If no more playlists
             more_playlists = False  # break while loop
@@ -331,20 +328,20 @@ Gets the songs from each playlist
 Runs all the songs through processing
 Returns the list of songs with their found urls (to later find lyrics for them)
 '''
-def get_playlist_songs(playlist_id_list, song_db):
+def get_playlist_songs(playlist_id_list, song_db, spotify_client):
     my_offset = 0
     songs = []
     temp = {}
+    spot_user_id = spotify_client.me()['id']
     more_songs = True   # Flag for while loop
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(), requests_timeout=15)
     for playlist in playlist_id_list:   # For every playlist
         
         while more_songs:
-            results = sp.playlist_tracks(playlist_id=playlist, fields='items(track(id,name,artists(name)))', limit=10, offset=my_offset)   # Get songs from playlist
+            results = spotify_client.playlist_tracks(playlist_id=playlist, fields='items(track(id,name,artists(name)))', limit=10, offset=my_offset)   # Get songs from playlist
             
             for item in results['items']:
-                if not item['track']: #skip empty tracks
+                if not item['track'] or item['track']['id'] == None: #skip empty tracks and other stuff
                     continue
 
                 temp = {'name': item['track']['name'], 'artist': item['track']['artists'][0]['name'], 'spot_id': item['track']['id']}   # Format the song from spotify -> dict
@@ -360,14 +357,22 @@ def get_playlist_songs(playlist_id_list, song_db):
 
     #make a set of songs before processing
     #todo: use function/solution found in above todo
-    set_maker = []
-    for song in songs:
-        if not (song in songs or song_db.is_song_in_database(song['spot_id'])):
-            set_maker.append(song)
+    total_songs = []
+    for x in songs:
+        if x not in total_songs:
+            total_songs.append(x)
 
-    songs = set_maker   #tested, it works
+    songs = []
+    for song in total_songs:
+        search_params = {'name' : song['name'], 'artist' : song['artist'], 'spot_id': song['spot_id']}
+        if song_db.is_song_in_database(search_params):
+            if not song_db.is_song_in_not_found(search_params):   # Meaning the song is in the 'found' db already
+                song_info = song_db.find_song(search_params)
+                song_db.insert_user_song(spot_user_id, song_info['url'])   # Insert it for the user
+        else:
+            songs.append(song)
 
-    process_songs(songs, song_db)   # Get correct url & insert songs
+    process_songs(songs, song_db, spotify_client)   # Get correct url & insert songs
    
     return songs
 
@@ -375,23 +380,25 @@ def get_playlist_songs(playlist_id_list, song_db):
 Get all the saved songs from users "Saved/liked/hearted" list (Spotify keeps changing the name)
 Note: As of now this can find and re-process songs previously found in albums and playlists followed
 '''
-def get_spotify_songs(song_db):
+def get_spotify_songs(song_db, spotify_client):
     songs = []
-    # urlList = []  Seems like these two lines are leftover from who knows when
-    # songDict = {}
+    spot_user_id = spotify_client.me()['id']
     more_songs = True   # Flag for while loop
     song_offset = 0
-    scope = "user-library-read"
     
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope), requests_timeout=15)
-
     while more_songs:
-        results = sp.current_user_saved_tracks(limit=25, offset=song_offset)    # Gets saved songs 25 at a time
+        results = spotify_client.current_user_saved_tracks(limit=25, offset=song_offset)    # Gets saved songs 25 at a time
 
         for item in results['items']:   # For every song
             track = item['track']
             temp = {'name': track['name'], 'artist': track['artists'][0]['name'], 'spot_id': track['id']}   # Format spotify song -> dict
-            if not song_db.is_song_in_database(temp['spot_id']):
+            if temp['spot_id'] == None:
+                continue    # skip local/podcast/ and such
+            if song_db.is_song_in_database(temp):
+                if not song_db.is_song_in_not_found(temp):   # Meaning the song is in the 'found' db already
+                    song_info = song_db.find_song(temp)
+                    song_db.insert_user_song(spot_user_id, song_info['url'])   # Insert it for the user
+            else:
                 songs.append(temp)  # Add to list
         
         if len(results['items']) < 10:  # Todo: This should be changed to 25. Too scared to change it right now
@@ -399,7 +406,7 @@ def get_spotify_songs(song_db):
         else:
             song_offset += 25
     
-    process_songs(songs, song_db)    # Get correct url & insert songs
+    process_songs(songs, song_db, spotify_client)    # Get correct url & insert songs
     return songs
 
 '''
@@ -455,12 +462,12 @@ Takes the song database client, and the list of songs to find lyrics for
 Grabs the song url from the database (because earlier the found url was saved in the db)
 Scrapes the url for lyrics
 '''
-def generate_lyric_files(song_data_base, new_songs_list):
+def generate_lyric_files(song_data_base, new_songs_list, spotify_user_id):
     lyrics = None
 
     for song in new_songs_list: # For every song in the list provided
         print(song)
-        found_song = song_data_base.search_user_song_by_title_and_artist(song.get('name'), song.get('artist'))
+        found_song = song_data_base.search_user_song_by_title_and_artist(spotify_user_id, song.get('name'), song.get('artist'))
 
         if found_song != -1:    # If song in database
             lyrics = get_lyrics(found_song.get('url'))
@@ -475,11 +482,12 @@ def generate_lyric_files(song_data_base, new_songs_list):
         song_data_base.insert_into_lyrics(temp) # input lyrics into the dict 
 
 '''
+DEPRECIATED & broken, don't use
 Takes the song databse client, song being searched by user, and a first time flag
 I dont know 100% how this works anymore
 '''
-def lyric_recommendation(song_database, song_wanting_recommendation_for, first_time_flag):
-    
+def lyric_recommendation(song_database, song_wanting_recommendation_for, first_time_flag, spot_client):
+    user_id = spot_client.me()['id']
     dataframe_recommended_song = {}
     error_message = 'Sorry, I could not find that song from your library'
     error_message2 = 'Sorry, the song wasn\'t found in the vectorized database'
@@ -503,7 +511,7 @@ def lyric_recommendation(song_database, song_wanting_recommendation_for, first_t
         dataframe_recommended_song['link'] = lyrics_row['url']
     elif len(song_wanting_recommendation_for) == 2: # If song title and artist provided by user
         recommendation_artist = song_wanting_recommendation_for[1]
-        answer = song_database.search_user_song_by_title_and_artist(song_wanting_recommendation_for[0], recommendation_artist)  # Search database by song title and artist
+        answer = song_database.search_user_song_by_title_and_artist(song_wanting_recommendation_for[0], recommendation_artist, user_id)  # Search database by song title and artist
         if answer == -1:    # if not found
             return error_message
 
@@ -589,21 +597,29 @@ Gets permissions to access all songs and gets the songs from the logged in spoti
 Gets the lyrics to the songs
 '''
 def setup(database_songs):
-    album_ids = get_spotify_albums()
-    album_songs_list = get_all_album_songs(album_ids, database_songs)
+    sp_objects = create_oath_token(database_songs)
+    sp_client = sp_objects['client']
+    sp_oath = sp_objects['oath']
+    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
+
+    album_ids = get_spotify_albums(sp_client)
+    album_songs_list = get_all_album_songs(album_ids, database_songs, sp_client)
     
-    playlist_id_list = get_spotify_playlists()
-    playlist_songs_list = get_playlist_songs(playlist_id_list, database_songs)
+    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
+    playlist_id_list = get_spotify_playlists(sp_client)
+    playlist_songs_list = get_playlist_songs(playlist_id_list, database_songs, sp_client)
     
-    saved_songs_list = get_spotify_songs(database_songs)
+    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
+    saved_songs_list = get_spotify_songs(database_songs, sp_client)
     
     user_songs = album_songs_list + playlist_songs_list + saved_songs_list
+    sp_user_id = sp_client.me()['id']
     #todo: put in better spot that utilizes a first time flag
-    generate_lyric_files(database_songs, user_songs)
+    generate_lyric_files(database_songs, user_songs, sp_user_id)
 
 def main():
     song_db = Songs()
-    # setup(song_db)
+    setup(song_db)
     
     quit()
     
@@ -612,7 +628,8 @@ def main():
     build_knowledge_base(con, tf_idf_list)
     quit()
     '''
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    main()
     # os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_ID"
     # os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
     # os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"
