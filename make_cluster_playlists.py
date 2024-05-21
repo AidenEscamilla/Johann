@@ -5,7 +5,6 @@ import spotipy
 from spot_oath import get_fresh_spotify_client
 
 
-
 def get_user_cluster_dataframe(db_client, cluster_df, spotify_client):
   user_id = spotify_client.me()['id']
   spot_ids = []
@@ -39,7 +38,7 @@ def get_cluster_songs(cluster_songs_df):
   return songs
 
 
-def create_cluster_playlist(songs_to_add, cluster_number, spotify_client):
+def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
     scope = "playlist-modify-public"
     spot_track_prefix = "spotify:track:"
 
@@ -47,16 +46,13 @@ def create_cluster_playlist(songs_to_add, cluster_number, spotify_client):
     user_id = spotify_client.me()['id']
 
     # Create a new playlist
-    playlist_name = f"Cluster playlist #{cluster_number}"
-    playlist_description = "This is a new playlist created with Spotipy"
-    playlist = spotify_client.user_playlist_create(user=user_id, name=playlist_name, public=True, description=playlist_description)
+    playlist = spotify_client.user_playlist_create(user=user_id, name=playlist_info['title'], public=True, description=playlist_info['description'])
     playlist_id = playlist['id']
 
     # Add tracks to the playlist
     track_uris = []
     for song in songs_to_add:
       track_uris.append(spot_track_prefix+song['spot_id'])
-    print(len(track_uris))
 
     # Add tracks to the playlist
     counter = 0
@@ -67,14 +63,17 @@ def create_cluster_playlist(songs_to_add, cluster_number, spotify_client):
         spotify_client.playlist_add_items(playlist_id, track_uris[counter:])
       counter += 99
 
-def make_playlists(user_cluster_df, spot_client):
+def make_playlists(user_cluster_df, db_client, spot_client):
+  user_id = spot_client.me()['id']
   cluster_labels = set(user_cluster_df['cluster'].to_list())
+  cluster_labels.remove(-1) # Remove noise points
 
   for cluster in cluster_labels:
     cluster_songs = user_cluster_df[user_cluster_df['cluster'] == cluster]
     playlist = []
     playlist = get_cluster_songs(cluster_songs)
-    create_cluster_playlist(playlist, int(cluster), spot_client)
+    playlist_info = db_client.get_user_cluster_info(user_id, cluster)
+    create_cluster_playlist(playlist, playlist_info, spot_client)
 
 def main():
   db_client = Songs()
@@ -82,7 +81,7 @@ def main():
   spot_client = get_fresh_spotify_client(db_client)
 
   user_cluster_df = get_user_cluster_dataframe(db_client, user_cluster_df, spot_client) # Pass df by reference might be worth it here
-  make_playlists(user_cluster_df, spot_client)
+  make_playlists(user_cluster_df, db_client, spot_client)
   
 
 

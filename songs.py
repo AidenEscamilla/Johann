@@ -261,7 +261,7 @@ class Songs:
     
     def get_all_user_summary_embeddings(self, user_id):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT s.url, s.name, s.artist, oai.summary_embedding \
+        cursor.execute('SELECT s.url, s.name, s.artist, oai.summary_embedding, oai.summary \
                         FROM songs as s \
                         INNER JOIN user_songs as us ON s.url = us.url\
                         INNER JOIN open_ai_data as oai ON s.url = oai.url  \
@@ -320,6 +320,23 @@ class Songs:
         results = cursor.fetchall()
 
         return results
+    
+    def get_user_cluster_info(self, user_id, cluster_number):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT title, description \
+                        FROM cluster_info \
+                        WHERE user_id = %s AND cluster = %s', [user_id, cluster_number])
+        result = cursor.fetchone()
+
+        if len(result) == 2:
+            result_dict = {
+                    'title' : result[0],
+                    'description' : result[1],
+                }
+        else:
+            result_dict = None
+
+        return result_dict
     
     
     ##### Insert functions
@@ -420,9 +437,27 @@ class Songs:
         
         self.connection.commit()
 
+    def clear_user_cluster_info(self, user_id):
+        cursor = self.connection.cursor()
+
+        # Clear all cluster info already in db
+        cursor.execute('DELETE FROM cluster_info WHERE user_id = %s', [user_id])
+        self.connection.commit()
+
+    def insert_user_cluster_info(self, user_id, cluster_number, playlist_data):
+        cursor = self.connection.cursor()
+
+        cursor.execute('INSERT INTO cluster_info(user_id, cluster, title, description) \
+                        VALUES(%s, %s, %s, %s) \
+                        ON CONFLICT(user_id, cluster) DO UPDATE SET \
+                        title = EXCLUDED.title, \
+                        description = EXCLUDED.description', [user_id, cluster_number, playlist_data['title'], playlist_data['description']])
+
+        self.connection.commit()
+
 
     ''' Takes a dict {url : url-example.com, lyrics : 'These are cool lyrics'}'''
-    def insert_into_lyrics(self, lyrics_and_url):                                                     #Maybe prob here
+    def insert_into_lyrics(self, lyrics_and_url):
         cursor = self.connection.cursor()
 
         row_info = (lyrics_and_url['url'], lyrics_and_url['lyrics'])
