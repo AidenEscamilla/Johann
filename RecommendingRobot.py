@@ -3,6 +3,7 @@ import random
 from songs import Songs
 from WebCrawlSpotify import lyric_recommendation
 from WebCrawlSpotify import setup
+from spot_oath import create_oath_token
 
 
 def random_classifier(song_database):
@@ -22,8 +23,14 @@ def random_classifier(song_database):
     for row in result:
         print(row['name'], ': ', row['artist'])
 
+'''
+Probably depriciated and broken
+'''
+def lyric_classifier(song_database, first_time_flag, spot_client):
+    sp_objects = create_oath_token(song_database)
+    sp_client = sp_objects['client']
+    sp_oath = sp_objects['oath']
 
-def lyric_classifier(song_database, first_time_flag):
     song_wanting = input('Please enter a song you want recommendations for: ')
     song_artist_wanting = input('Please enter the artist (type N/A for unknown or unwanted): ')
     lyric_args = []
@@ -34,7 +41,7 @@ def lyric_classifier(song_database, first_time_flag):
         lyric_args.append(song_wanting)
         lyric_args.append(song_artist_wanting)
 
-    return_message = lyric_recommendation(song_database, lyric_args, first_time_flag)
+    return_message = lyric_recommendation(song_database, lyric_args, first_time_flag, sp_client)
     print(return_message)
 
 
