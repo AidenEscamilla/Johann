@@ -46,19 +46,35 @@ class Songs:
         cursor.execute('SELECT songs.url, name, artist, lyrics FROM songs INNER JOIN lyrics on songs.url = lyrics.url WHERE length(lyrics) > 0')
         return cursor.fetchall()
     
+    def all_user_songs_missing_summaries(self, user_id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT s.url, s.name, s.artist, l.lyrics \
+                       FROM songs as s \
+                       INNER JOIN lyrics as l ON s.url = l.url  \
+                       INNER JOIN user_songs as us ON s.url = us.url \
+                       LEFT JOIN open_ai_data as oai ON oai.url = s.url \
+                       WHERE us.user_id = %s AND length(l.lyrics) > 0 AND oai.summary IS NULL', [user_id])
+        return cursor.fetchall()
+    
 
     ##### Search functions
         ##### User search functions
 
-    def search_user_song_by_title(self, title):
+    def search_user_song_by_title(self, user_id, title):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE name LIKE %s', (title,))
+        cursor.execute('SELECT * FROM songs as s\
+                        INNER JOIN user_songs as us\
+                        ON s.url = us.url \
+                        WHERE us.user_id = %s AND name LIKE %s', [user_id,title])
         result = cursor.fetchone()
 
         if result == None:
             half_input = title[:int(len(title)/2)]
             psql_formatted_half_input = "%"+half_input+"%"
-            cursor.execute('SELECT * FROM songs WHERE name ILIKE %s',(psql_formatted_half_input,))
+            cursor.execute('SELECT * \
+                           FROM songs as s \
+                           INNER JOIN user_songs as us ON url \
+                           WHERE us.user_id = %s AND name ILIKE %s',[user_id, psql_formatted_half_input])
             result = cursor.fetchone()
         
         if result == None:
@@ -71,14 +87,20 @@ class Songs:
             }
             return result_dict
     
-    def search_user_song_by_title_and_artist(self, title, artist):
+    def search_user_song_by_title_and_artist(self, user_id, title, artist):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE name ILIKE %s AND artist ILIKE %s', (title, artist,))
+        cursor.execute('SELECT * \
+                       FROM songs as s \
+                       INNER JOIN user_songs as us ON s.url = us.url \
+                       WHERE us.user_id = %s AND name ILIKE %s AND artist ILIKE %s', [user_id, title, artist])
         result = cursor.fetchone()
 
         if result == None:
             half_input = title[:int(len(title)/2)]
-            cursor.execute('SELECT * FROM songs WHERE name ILIKE %s AND artist ILIKE %s',('%'+half_input+'%', artist,))
+            cursor.execute('SELECT * \
+                           FROM songs as s\
+                           INNER JOIN user_songs as us ON s.url = us.url \
+                           WHERE us.user_id = %s AND s.name ILIKE %s AND s.artist ILIKE %s',[user_id,'%'+half_input+'%', artist])
             result = cursor.fetchone()
         
         if result == None:  # If still no result
@@ -93,16 +115,39 @@ class Songs:
             return result_dict
         
 
-        ##### Databse search functions
+        ##### Database search functions
 
-    def is_song_in_database(self, spot_id):
+    def is_song_in_database(self, search_dict):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE spot_id = %s', [spot_id])
-        result = cursor.fetchone()
-        if result:
+        cursor.execute('SELECT * \
+                       FROM songs as s \
+                       WHERE s.spot_id = %s OR (s.name = %s AND s.artist = %s)', [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
+        song_result = cursor.fetchone()
+
+        cursor.execute('SELECT * \
+                       FROM not_found as nf \
+                       WHERE nf.spot_id = %s', [search_dict['spot_id']])
+        not_found_result = cursor.fetchone()
+
+
+        if (song_result or not_found_result):
             return True
         else:
             return False
+        
+    def is_song_in_not_found(self, search_dict):
+        cursor = self.connection.cursor()
+
+        cursor.execute('SELECT * \
+                       FROM not_found as nf \
+                       WHERE nf.spot_id = %s OR (nf.name = %s AND nf.artist = %s)', [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
+        not_found_result = cursor.fetchone()
+
+        if not_found_result:
+            return True
+        else:
+            return False
+
 
     def find_song_with_name_artist_and_lyrics(self, title, artist):
         cursor = self.connection.cursor()
@@ -123,11 +168,51 @@ class Songs:
 
         return result_dict
     
+    def find_song(self, search_dict):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * \
+                        FROM songs \
+                        WHERE spot_id = %s OR (name = %s AND artist = %s)', 
+                        [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
+        result = cursor.fetchone()
+
+        if len(result) >= 4:
+            result_dict = {
+                    'url' : result[0],
+                    'name' : result[1],
+                    'artist' : result[2],
+                    'spot_id' : result[3]
+                }
+        else:
+            result_dict = None
+
+        return result_dict
+    
+    '''
+    Probably depriciated
+    '''
     def find_song_with_name_and_artist(self, name, artist):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE name = %s AND artist = %s', (name, artist,))
+        cursor.execute('SELECT * FROM songs WHERE name = %s AND artist = %s', [name, artist])
         result = cursor.fetchone()
         return result
+
+    def find_song_by_spot_id(self, spot_id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM songs WHERE spot_id = %s', [spot_id])
+        result = cursor.fetchone()
+
+        if len(result) >= 4:
+            result_dict = {
+                    'url' : result[0],
+                    'name' : result[1],
+                    'artist' : result[2],
+                    'spot_id' : result[3]
+                }
+        else:
+            result_dict = None
+
+        return result_dict
     
     #### Database fetch functions
 
@@ -171,6 +256,16 @@ class Songs:
                         INNER JOIN open_ai_data as oai \
                         ON s.url = oai.url  \
                         WHERE summary_embedding IS NOT NULL')
+        results = cursor.fetchall()
+        return results
+    
+    def get_all_user_summary_embeddings(self, user_id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT s.url, s.name, s.artist, oai.summary_embedding \
+                        FROM songs as s \
+                        INNER JOIN user_songs as us ON s.url = us.url\
+                        INNER JOIN open_ai_data as oai ON s.url = oai.url  \
+                        WHERE us.user_id = %s AND summary_embedding IS NOT NULL', [user_id])
         results = cursor.fetchall()
         return results
     
@@ -223,10 +318,53 @@ class Songs:
                         INNER JOIN open_ai_data as oai ON s.url = oai.url \
                         WHERE us.user_id = %s AND s.cluster IS NOT NULL', [user_id])
         results = cursor.fetchall()
+
         return results
     
     
     ##### Insert functions
+    def insert_user(self, user_id, user_display_name):
+        cursor = self.connection.cursor()
+
+        # Note user_id is not getting updated because on conflict I don't think we should change the user
+        cursor.execute('INSERT INTO spotify_user(user_id, display_name) \
+                        VALUES(%s, %s) \
+                        ON CONFLICT(user_id) DO UPDATE SET \
+                        display_name = EXCLUDED.display_name', [user_id, user_display_name])
+
+        self.connection.commit()
+
+    def insert_user_song(self, user_id, song_url):
+        cursor = self.connection.cursor()
+
+        # Note user_id is not getting updated because on conflict I don't think we should change the user. Url's may change over time (but really shouldn't)
+        cursor.execute('INSERT INTO user_songs(user_id, url) \
+                        VALUES(%s, %s) \
+                        ON CONFLICT(user_id, url) DO UPDATE SET \
+                        url = EXCLUDED.url', [user_id, song_url])
+
+        self.connection.commit()
+
+    def insert_oath_token(self, oath_token):
+        cursor = self.connection.cursor()
+        row_info = [oath_token['user_id'], oath_token['access_token'], oath_token['refresh_token'], \
+                    oath_token['token_type'], oath_token['scope'], oath_token['expires_in'], \
+                    oath_token['expires_at']
+                ]
+
+        mogrified_query = cursor.mogrify('INSERT INTO oath_flow(user_id, access_token, refresh_token, token_type, scope, expires_in, expires_at) \
+                        VALUES(%s, %s, %s, %s, %s, %s, %s) \
+                        ON CONFLICT(user_id) DO UPDATE SET \
+                        user_id = EXCLUDED.user_id, \
+                        access_token = EXCLUDED.access_token, \
+                        refresh_token = EXCLUDED.refresh_token, \
+                        token_type = EXCLUDED.token_type, \
+                        scope = EXCLUDED.scope, \
+                        expires_in = EXCLUDED.expires_in, \
+                        expires_at = EXCLUDED.expires_at', row_info)
+        cursor.execute(query=mogrified_query)
+
+        self.connection.commit()
 
     def insert_song(self, songDict):
         cursor = self.connection.cursor()
@@ -299,14 +437,15 @@ class Songs:
     ''' Takes a dict {url : 'url-example.com', error : 'BrokenCodeError', name : song_title, artist : artist_name}'''
     def insert_into_not_found(self, song_not_found):
         cursor = self.connection.cursor()
-        row_info = (song_not_found['url'], song_not_found['name'], song_not_found['artist'], song_not_found['error'])
-        cursor.execute('INSERT INTO not_found(url, name, artist, error) \
-                        VALUES( %s,  %s,  %s,  %s) \
+        row_info = (song_not_found['url'], song_not_found['name'], song_not_found['artist'], song_not_found['error'], song_not_found['spot_id'])
+        cursor.execute('INSERT INTO not_found(url, name, artist, error, spot_id) \
+                        VALUES( %s,  %s,  %s,  %s, %s) \
                         ON CONFLICT(url) DO UPDATE SET \
                         url = EXCLUDED.url, \
                         name = EXCLUDED.name, \
                         artist = EXCLUDED.artist, \
-                        error = EXCLUDED.error', row_info)
+                        error = EXCLUDED.error, \
+                        spot_id = EXCLUDED.spot_id', row_info)
         self.connection.commit()
         print("INSERTED")
         
