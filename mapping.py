@@ -17,7 +17,8 @@ import os
 def get_playlist_title_description(embeddings_df, cluster_summaries):
   ai_model = "gpt-3.5-turbo"
   cluster_labels = set(embeddings_df['cluster'].to_list())
-  cluster_labels.remove(-1) # Remove noise cluster
+  if -1 in cluster_labels:
+    cluster_labels.remove(-1) # Remove noise cluster
   playlist_data = {}
   SYSTEM_SETUP = '''
   Synthesize a 3-to-8 word title and 20 word playlist description of the following few paragraphs. Focus on the morals and themes described in the paragraphs. Don't say poem.
@@ -55,7 +56,8 @@ def get_playlist_title_description(embeddings_df, cluster_summaries):
 def get_cluster_summaries(cluster_df):
   cluster_summaries = {}
   cluster_labels = set(cluster_df['cluster'].to_list())
-  cluster_labels.remove(-1) # remove noise cluster
+  if -1 in cluster_labels:
+    cluster_labels.remove(-1) # remove noise cluster
 
   for cluster in cluster_labels:  # for every cluster
     cluster_songs = cluster_df[cluster_df['cluster'] == cluster]  #get the cluster songs
