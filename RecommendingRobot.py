@@ -1,9 +1,6 @@
-import random
 
 from songs import Songs
-from WebCrawlSpotify import lyric_recommendation
-from WebCrawlSpotify import setup
-from spot_oath import create_oath_token
+from spot_oath import get_fresh_spotify_client
 
 
 def random_classifier(song_database):
