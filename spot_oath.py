@@ -1,6 +1,6 @@
 import spotipy
 # from spotipy.oauth2 import SpotifyClientCredentials
-from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth, SpotifyClientCredentials
 from songs import Songs # my class file
 
 
@@ -9,7 +9,8 @@ def create_oath_token(database_client):
   scopes = [
     "user-library-read",
     "playlist-read-private",
-    "playlist-modify-public"
+    "playlist-modify-public",
+    "ugc-image-upload"
     ]
 
   # Authenticate with Spotify
@@ -46,7 +47,6 @@ def refresh_user_oath_token(db_client, spotify_client, spotify_oath):
   if spotify_oath.is_token_expired(oath_token):
     token_info = refresh_access_token(spotify_oath, oath_token)
     new_access_token = token_info['access_token']
-
     spotify_client = spotipy.Spotify(auth=new_access_token)
     # Get the user
     spotify_user = spotify_client.me()

@@ -1,8 +1,16 @@
 import pandas as pd
-from mapping import get_dataframe, add_reduced_dimensions_to_df, add_density_cluster_labels_to_df
 from songs import Songs
 import spotipy
 from spot_oath import get_fresh_spotify_client
+
+#For image generation & manipulation
+from openai import OpenAI
+import base64
+import requests
+from PIL import Image 
+from io import BytesIO
+import sys
+
 
 
 def get_user_cluster_dataframe(db_client, cluster_df, spotify_client):
@@ -37,9 +45,30 @@ def get_cluster_songs(cluster_songs_df):
 
   return songs
 
+def get_and_save_playlist_image(playlist_description):
+  ai_client = OpenAI()
+  # Get image from api
+  response = ai_client.images.generate(
+    model="dall-e-2",
+    prompt="A "+ playlist_description +" WITH NO WORDS ON THE PICTURE.",
+    size="512x512",
+    quality="standard",
+    response_format="url",
+    n=1,
+  )
+
+  image_url=response.data[0].url # get response url
+
+  # Download the image
+  headers = {'User-Agent': 'AppleWebKit/537.36'}
+  image_response = requests.get(image_url, headers=headers)
+  # Open the image using PIL
+  image = Image.open(BytesIO(image_response.content))
+  # Resize the image to Spotify's recommended resolution (640x640 pixels)
+  image = image.resize((300, 300), Image.LANCZOS)
+  image.save("ai_image.jpg", format='JPEG', quality=95)
 
 def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
-    scope = "playlist-modify-public"
     spot_track_prefix = "spotify:track:"
 
     # Get the current user's ID
@@ -48,6 +77,19 @@ def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
     # Create a new playlist
     playlist = spotify_client.user_playlist_create(user=user_id, name=playlist_info['title'], public=True, description=playlist_info['description'])
     playlist_id = playlist['id']
+
+    # Add image to playlist
+    get_and_save_playlist_image(playlist_info['description'])
+    image_path = "ai_image.jpg"
+    # Read the image and encode it to base64
+    with open(image_path, "rb") as image_file:
+      encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+    if sys.getsizeof(encoded_image) < 256000:
+      # Upload the image to the playlist
+      spotify_client.playlist_upload_cover_image(playlist_id, encoded_image)
+    else:
+      print("Image was too large for playlist")
 
     # Add tracks to the playlist
     track_uris = []
@@ -66,7 +108,8 @@ def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
 def make_playlists(user_cluster_df, db_client, spot_client):
   user_id = spot_client.me()['id']
   cluster_labels = set(user_cluster_df['cluster'].to_list())
-  cluster_labels.remove(-1) # Remove noise points
+  if -1 in cluster_labels:
+    cluster_labels.remove(-1) # Remove noise points
 
   for cluster in cluster_labels:
     cluster_songs = user_cluster_df[user_cluster_df['cluster'] == cluster]
