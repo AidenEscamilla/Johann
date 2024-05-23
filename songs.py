@@ -189,13 +189,31 @@ class Songs:
         return result_dict
     
     '''
-    Probably depriciated
+    Used for recommendations
     '''
     def find_song_with_name_and_artist(self, name, artist):
+        name = '_'.join(name.split())
+        artist = '_'.join(artist.split())
+
         cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM songs WHERE name = %s AND artist = %s', [name, artist])
+        cursor.execute('SELECT s.url, s.name, s.artist, s.spot_id, oai.summary_embedding \
+                        FROM songs as s \
+                        INNER JOIN open_ai_data as oai on s.url = oai.url \
+                        WHERE s.url ILIKE %s AND oai.summary_embedding IS NOT NULL', ['%'+artist+'%'+name+'%'])
         result = cursor.fetchone()
-        return result
+
+        if result == None:
+            return None
+        elif len(result) >= 5:
+            result_dict = {
+                    'url' : result[0],
+                    'name' : result[1],
+                    'artist' : result[2],
+                    'spot_id': result[3],
+                    'summary_embedding' : result[4]
+                }
+
+        return result_dict
 
     def find_song_by_spot_id(self, spot_id):
         cursor = self.connection.cursor()
@@ -337,6 +355,24 @@ class Songs:
             result_dict = None
 
         return result_dict
+    
+
+    def get_recommendations(self, spot_id, playlist_limit):
+        cursor = self.connection.cursor()
+        
+        cursor.execute('SELECT s.name, s.artist, s.spot_id, oai.summary\
+                        FROM songs as s \
+                        INNER JOIN open_ai_data as oai ON s.url = oai.url \
+                        WHERE s.spot_id != %s \
+                        ORDER BY oai.summary_embedding <=> \
+                            (SELECT oai.summary_embedding \
+                            FROM songs as s \
+                            INNER JOIN open_ai_data as oai ON s.url = oai.url \
+                            WHERE s.spot_id = %s) \
+                        LIMIT %s', [spot_id, spot_id, playlist_limit])
+        results = cursor.fetchall()
+
+        return results
     
     
     ##### Insert functions
