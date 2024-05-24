@@ -20,7 +20,7 @@ def create_oath_token(database_client):
   access_token = sp_oauth.get_access_token(as_dict=False)
 
   # Use the access token to create a Spotify client
-  sp = spotipy.Spotify(auth=access_token)
+  sp = spotipy.Spotify(auth=access_token, requests_timeout=10)
 
   # Insert the user
   spotify_user = sp.me()
