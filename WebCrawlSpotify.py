@@ -91,9 +91,6 @@ def process_songs(song_list, song_db, spotify_client):
             print(f"no artist for {title}")
             continue
         
-        print("PREQUOTE")
-        print(title + ' ' + artist)
-
         # clean artist
         artist = anyascii(artist)   # these are from spotify, not ascii guaranteed
         artist = re.sub('[/](?=[0-9])', '-', artist)
@@ -102,21 +99,27 @@ def process_songs(song_list, song_db, spotify_client):
         artist = re.sub('[&]', 'and', artist)
         artist = re.sub('[:]', '', artist) 
         artist = re.sub('-[*-]', '', artist)
-        title = re.sub(' +', ' ', title)
+        artist = re.sub(' +', ' ', artist)
+        artist = re.sub('(?<=\d).(?=\d)', '', artist) # Remove decimal in numbers
+
 
         # clean title
         title = anyascii(title)    # these are from spotify, not ascii guaranteed
         title = re.sub('[/](?=[0-9])', ' ', title)
         # title = re.sub('[Ff]eat.*', '', title)     #fixes formating from song titles
-        title = re.sub('\'|[?.!,+$<]|\[.*\]|\(feat*\)||\(with*\)|[()]', '', title)     #fixes formating from song titles #CHECK IF WITH WORKS
+        title = re.sub('\'', '', title)     #fixes formating from song titles #CHECK IF WITH WORKS
+        title = re.sub('[?.!,+$<]', '', title)     
+        title = re.sub('\[.*\]', '', title)     
+        title = re.sub('\(feat*\)|\(with*\)', '', title)     
+        title = re.sub('[()]', '', title)     
         title = re.sub('[/-]', ' ', title)     #fixes formating from song titles
         title = re.sub('[&]', 'and', title)
         title = re.sub('[:]', '', title)
         title = re.sub('-[*-]', '', title)
         title = re.sub(' +', ' ', title)
+        title = re.sub('(?<=\d).(?=\d)', '', title) # Remove decimal in numbers
 
         text_encoded = quote(title + ' ' + artist)  # Turn the title and artist into a proper url link
-        print("QUOTE:", text_encoded)
 
         try:
             driver.get(base_url + text_encoded) # Go to url
@@ -131,7 +134,6 @@ def process_songs(song_list, song_db, spotify_client):
     
         for link in soup.find_all('a', class_="mini_card"): # mini_cards hold links to lyrics
             link_str = link.get('href').lower()
-            print('.', end="")
             if is_matching_link(title, artist, link_str):
                 # insert into song db
                 found_lyrics_first_try = True
@@ -297,7 +299,7 @@ def get_all_album_songs(album_ids, song_db, spotify_client):
                 total_songs.append(song)
     
     process_songs(total_songs, song_db, spotify_client) #todo: next to unit test   
-    return songs
+    return total_songs
 
 '''
 Get all the playlist a user follows (I think this includes user made playlists)
@@ -453,7 +455,6 @@ def get_lyrics(lyric_url):
             #Stanzas and new lines helps it recognize patterns, sections of ideas, and sentiment (mood and themes are the same without stanzas)
 
     print(lyric_url)
-    print(lyrics_output)
     print("moving to next song")
     return lyrics_output
 
