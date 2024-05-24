@@ -3,7 +3,7 @@ import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-import WebCrawlSpotify
+import webcrawl_lyrics
 from songs import MockSongs
 
 def assert_equals(expected, actual):
@@ -30,7 +30,7 @@ def test_assert_equals():
 
 def test_empty_url_returns_negative_one():
     expected = '-1'
-    actual = WebCrawlSpotify.get_soup_from_website(None, 'n/a', 'n/a', None)
+    actual = webcrawl_lyrics.get_soup_from_website(None, 'n/a', 'n/a', None)
     if assert_equals(expected, actual):
         pass_test()
     else:
@@ -47,7 +47,7 @@ def test_handle_not_found_cannot_find():
     
     expected = '-1'
     songDb = MockSongs()
-    actual = WebCrawlSpotify.handle_page_not_found(url, title, artist, songDb)
+    actual = webcrawl_lyrics.handle_page_not_found(url, title, artist, songDb)
 
     if assert_equals(expected, actual):
         pass_test()
@@ -60,7 +60,7 @@ def test_handle_not_found_can_find():
     title = 'sun and moon'
     artist = 'anees'
     
-    actual = WebCrawlSpotify.handle_page_not_found(url, title, artist, None)
+    actual = webcrawl_lyrics.handle_page_not_found(url, title, artist, None)
 
     if assert_not_equals('-1', actual):
         pass_test()
@@ -68,12 +68,12 @@ def test_handle_not_found_can_find():
         fail_test()
 
 def test_spotify_album_proper_authentication():
-    os.environ["SPOTIPY_CLIENT_ID"] = "PUBLIC_KEY"
-    os.environ["SPOTIPY_CLIENT_SECRET"] = "SECRET_KEY"
+    os.environ["SPOTIPY_CLIENT_ID"] = "9534b2ba3dd4408fbee3d0bf3cf4d912"
+    os.environ["SPOTIPY_CLIENT_SECRET"] = "aa0326708f2f41fb90dcda386989de53"
     os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"  #this will open a browser page, follow terminal instructions
     actual = None
     try:
-        actual = WebCrawlSpotify.get_spotify_albums()
+        actual = webcrawl_lyrics.get_spotify_albums()
     except spotipy.oauth2.SpotifyOauthError as e:
         print(e)
         pass #invalid credentials
@@ -93,7 +93,7 @@ def test_spotify_album_bad_authentication():
     os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8888/callback"  #this will oen a browser page, follow terminal instructions
     actual = None
     try:
-        actual = WebCrawlSpotify.get_spotify_albums()
+        actual = webcrawl_lyrics.get_spotify_albums()
     except spotipy.oauth2.SpotifyOauthError as e:
         pass_test()
     
@@ -101,7 +101,7 @@ def test_spotify_album_bad_authentication():
         fail_test()
 
 def test_get_albums_outputs_populated_list():
-    actual = WebCrawlSpotify.get_spotify_albums()
+    actual = webcrawl_lyrics.get_spotify_albums()
     if assert_not_equals(None, actual):
         pass_test()
     else:
@@ -111,7 +111,7 @@ def test_all_albums_returns_some_data():
     album_ids = ['2wPnKggTK3QhYAKL7Q0vvr', '7N29psReKsIR8HOltPJqYS', '0FZK97MXMm5mUQ8mtudjuK']
     songDB = MockSongs()
 
-    actual = WebCrawlSpotify.get_all_album_songs(album_ids, songDB)
+    actual = webcrawl_lyrics.get_all_album_songs(album_ids, songDB)
     if assert_not_equals(None, actual):
         pass_test()
     else:
@@ -125,7 +125,7 @@ def test_invalid_album_id():
 
     actual = None
     try:
-        actual = WebCrawlSpotify.get_album_songs(sp, album_id, songs)
+        actual = webcrawl_lyrics.get_album_songs(sp, album_id, songs)
     except spotipy.exceptions.SpotifyException as e:
         pass_test()
 
@@ -139,7 +139,7 @@ def test_get_album_songs_returns_songs():
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
     try:
-        WebCrawlSpotify.get_album_songs(sp, album_id, songs)
+        webcrawl_lyrics.get_album_songs(sp, album_id, songs)
     except spotipy.exceptions.SpotifyException as e:
         print(e)
         fail_test()
