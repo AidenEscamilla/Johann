@@ -121,12 +121,13 @@ class Songs:
         cursor = self.connection.cursor()
         cursor.execute('SELECT * \
                        FROM songs as s \
-                       WHERE s.spot_id = %s OR (s.name = %s AND s.artist = %s)', [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
+                       LEFT JOIN lyrics as l on s.url = l.url \
+                       WHERE (s.spot_id = %s OR (s.name ILIKE %s AND s.artist ILIKE %s)) AND l.lyrics IS NOT NULL', [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
         song_result = cursor.fetchone()
 
         cursor.execute('SELECT * \
                        FROM not_found as nf \
-                       WHERE nf.spot_id = %s', [search_dict['spot_id']])
+                       WHERE (nf.spot_id = %s OR (nf.name ILIKE %s AND nf.artist ILIKE %s))', [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
         not_found_result = cursor.fetchone()
 
 
@@ -172,19 +173,20 @@ class Songs:
         cursor = self.connection.cursor()
         cursor.execute('SELECT * \
                         FROM songs \
-                        WHERE spot_id = %s OR (name = %s AND artist = %s)', 
+                        WHERE spot_id = %s OR (name ILIKE %s AND artist ILIKE %s)', 
                         [search_dict['spot_id'], search_dict['name'], search_dict['artist']])
         result = cursor.fetchone()
 
-        if len(result) >= 4:
+
+        if result == None:
+            return None
+        elif len(result) >= 4:
             result_dict = {
                     'url' : result[0],
                     'name' : result[1],
                     'artist' : result[2],
                     'spot_id' : result[3]
                 }
-        else:
-            result_dict = None
 
         return result_dict
     
