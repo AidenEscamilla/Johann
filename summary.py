@@ -118,19 +118,30 @@ def get_num_tokens(lyric_string: str) -> int:
   num_tokens = len(encoding.encode(lyric_string))
   return num_tokens
 
-def check_batch_status(api_client, batch_id):
+def check_batch_status(api_client, batch_id, db_client):
   try:
-    print(api_client.batches.retrieve(batch_id))
+    response = api_client.batches.retrieve(batch_id)
+    if response.status == 'in_progress':
+      print('OpenAi is still processing the batch.')
+    elif response.status == 'completed':
+      print("Batch complete, saving results...")
+      get_and_save_batch_results(api_client, batch_id)
+      print("Inserting to database...")
+      batch_results = get_batch_responses("batch_results.jsonl") # Takes file_name as argument
+      insert_response_summaries(db_client,batch_results)
+    else:
+      print("Soemthing went wrong. Take a closer look")
   except openai.NotFoundError as e:
     print(f"The batch_id:{batch_id} was incorrect. Please try again with a correct batch_id")
 
-# Can't find out how to make this work from the docs
-# I get the contents but idk what to do with a HttpxBinaryResponseContent object
-def get_batch_results(api_client):
-  finished_batch_id = api_client.batches.retrieve(BATCH_ID).output_file_id
-  content = api_client.files.content(finished_batch_id)
+def get_and_save_batch_results(api_client, batch_id):
+  finished_batch_id = api_client.batches.retrieve(batch_id).output_file_id
+  result = api_client.files.content(finished_batch_id).content
 
-  return content
+  
+  result_file_name = "batch_results.jsonl"
+  with open(result_file_name, 'wb') as file:
+    file.write(result)
 
 def dig_for_response(response_data):
   return response_data.get('response', {}).get('body', {}).get('choices')[0].get('message', {}).get('content')
@@ -169,24 +180,20 @@ def main():
 
   if input_functionality == '--check_status': # Most likely
     print("Getting status...")
-    check_batch_status(ai_client, batch_id)
+    check_batch_status(ai_client, batch_id, db_client)
   elif input_functionality == '--generate_batch': # Second likely
     print("Generating batch...")
     write_batch_file(db_client, sp_client)
     generate_batch(ai_client) # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
-  elif input_functionality == '--insert_batch_responses': # Least likely
-    print("Inserting to database...")
-    responses = get_batch_responses("batch_results.jsonl") # Takes file_name as argument
-    insert_response_summaries(db_client,responses)
 
 
 if __name__ == '__main__':  # Command line flag for desired functionality
-  valid_args = ['--generate_batch', '--insert_batch_responses', '--check_status']
+  valid_args = ['--generate_batch', '--check_status']
   if len(sys.argv) <= 1:
-    print("No arguments provided. Specify '--generate_batch', '--insert_batch_responses', or '--check_status <BATCH_ID>'")
+    print("No arguments provided. Specify '--generate_batch', or '--check_status <BATCH_ID>'")
     exit(1)
   elif sys.argv[1] not in valid_args: # input validation
-    print(f"{sys.argv[1]} not a valid argument. Try '--generate_batch', '--insert_batch_responses', or '--check_status <BATCH_ID>'")
+    print(f"{sys.argv[1]} not a valid argument. Try '--generate_batch', or '--check_status <BATCH_ID>'")
     exit(1)
   elif sys.argv[1] == '--check_status' and len(sys.argv) < 3:
     print("No batch_id included. Correct usage: '--check_status <BATCH_ID_HERE>'")
