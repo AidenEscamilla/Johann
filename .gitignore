@@ -16,5 +16,10 @@ embeddings.py
 # ignore files in testing 
 # (used to figure code out before merging into main recommendation files)
 testing/
-
 debugging_output.txt
+
+# ignore batch & image responses saved locally
+ai_image.jpg
+batch_data.jsonl
+batch_results.jsonl
+
