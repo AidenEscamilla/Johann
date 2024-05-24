@@ -1,6 +1,7 @@
 import os
 import tiktoken
 import sys
+import time
 from anyascii import anyascii
 import json
 from songs import Songs # my class file
@@ -119,20 +120,26 @@ def get_num_tokens(lyric_string: str) -> int:
   return num_tokens
 
 def check_batch_status(api_client, batch_id, db_client):
-  try:
-    response = api_client.batches.retrieve(batch_id)
-    if response.status == 'in_progress':
-      print('OpenAi is still processing the batch.')
-    elif response.status == 'completed':
-      print("Batch complete, saving results...")
-      get_and_save_batch_results(api_client, batch_id)
-      print("Inserting to database...")
-      batch_results = get_batch_responses("batch_results.jsonl") # Takes file_name as argument
-      insert_response_summaries(db_client,batch_results)
-    else:
-      print("Soemthing went wrong. Take a closer look")
-  except openai.NotFoundError as e:
-    print(f"The batch_id:{batch_id} was incorrect. Please try again with a correct batch_id")
+  status = 'in_progess'
+  while status != "completed":
+    try:
+      response = api_client.batches.retrieve(batch_id)
+      status = response.status
+      if status == 'in_progress':
+        print('OpenAi is still processing the batch.')
+      elif status == 'completed':
+        print("Batch complete, saving results...")
+        get_and_save_batch_results(api_client, batch_id)
+        print("Inserting to database...")
+        batch_results = get_batch_responses("batch_results.jsonl") # Takes file_name as argument
+        insert_response_summaries(db_client,batch_results)
+        break # Don't wont 10 min after finished inserting
+      else:
+        print("Soemthing went wrong. Take a closer look")
+        break # exit while loop
+    except openai.NotFoundError as e:
+      print(f"The batch_id:{batch_id} was incorrect. Please try again with a correct batch_id")
+    time.sleep(600)
 
 def get_and_save_batch_results(api_client, batch_id):
   finished_batch_id = api_client.batches.retrieve(batch_id).output_file_id
