@@ -69,7 +69,7 @@ def make_playlist(recommendation_root_song, recommendations_summary, spot_ids, s
   user_id = spot_client.me()['id']
 
   # Create a new playlist
-  playlist_name = recommendation_root_song['name'] + "recommendations"
+  playlist_name = recommendation_root_song['name'] + ": recommendations"
   playlist = spot_client.user_playlist_create(user=user_id, name=playlist_name, public=True, description=playlist_data['description'])
   playlist_id = playlist['id']
 
@@ -117,6 +117,7 @@ def main():
       print(f"I found \"{song_found['name']}: {song_found['artist']}\" in the database.")
       is_correct_song = input("Is this the correct song? (yes, no): ").lower()
       if is_correct_song == 'yes':
+        playlist_length = 0 # Seems to += input
         playlist_length = input("And how many recommendations would you like in the playlist?: ")
         while not is_positive_int(playlist_length): # Clean user input
           playlist_length = input("Not a positive number. Enter the number of recommendations you'd like: ")
