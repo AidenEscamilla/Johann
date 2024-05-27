@@ -1,5 +1,6 @@
 import psycopg2
 import os
+import time
 
 class MockSongs:
     def __init__(self) -> None:
@@ -10,6 +11,22 @@ class MockSongs:
 
     def insert_song(self, songDict):
         pass
+
+    # Spot oauth functions
+    def insert_oath_token(self, formatted_token):
+        pass
+
+    def insert_user(self, user_id, user_display_name):
+        pass
+
+    def get_oath_token(self, spot_oath):
+        mock_token = {'access_token': \
+                'test_string', \
+                'token_type': 'Bearer', 'expires_in': 3600, 'scope': None, 'expires_at': time.time() + 3600, \
+                'refresh_token': 'test_refresh'
+            }
+        
+        return mock_token
 
 
 class Songs:
