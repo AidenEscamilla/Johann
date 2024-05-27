@@ -2,6 +2,7 @@ import pandas as pd
 from songs import Songs
 import spotipy
 from spot_oath import get_fresh_spotify_client
+import time
 
 #For image generation & manipulation
 from openai import OpenAI
@@ -125,7 +126,9 @@ def make_playlists(user_cluster_df, db_client, spot_client):
     playlist = []
     playlist = get_cluster_songs(cluster_songs)
     playlist_info = db_client.get_user_cluster_info(user_id, cluster)
+    spot_client = get_fresh_spotify_client(db_client)
     create_cluster_playlist(playlist, playlist_info, spot_client)
+    time.sleep(15)  # Spotify send html 429 / html 504 for too many hits. This slows it down and lets the program scoot by
 
 def main():
   db_client = Songs()
