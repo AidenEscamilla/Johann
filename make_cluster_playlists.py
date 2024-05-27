@@ -48,14 +48,20 @@ def get_cluster_songs(cluster_songs_df):
 def get_and_save_playlist_image(playlist_description):
   ai_client = OpenAI()
   # Get image from api
-  response = ai_client.images.generate(
-    model="dall-e-2",
-    prompt="A "+ playlist_description +" WITH NO WORDS ON THE PICTURE.",
-    size="512x512",
-    quality="standard",
-    response_format="url",
-    n=1,
-  )
+  try:
+    response = ai_client.images.generate(
+      model="dall-e-2",
+      prompt="A "+ playlist_description +" WITH NO WORDS ON THE PICTURE. Follow all content safety rules",
+      size="512x512",
+      quality="standard",
+      response_format="url",
+      n=1,
+    )
+  except openai.BadRequestError as e:
+    print("OpenAi error: ", e)
+    print("No image :()")
+    return None
+
 
   image_url=response.data[0].url # get response url
 
@@ -68,6 +74,8 @@ def get_and_save_playlist_image(playlist_description):
   image = image.resize((300, 300), Image.LANCZOS)
   image.save("ai_image.jpg", format='JPEG', quality=95)
 
+  return True #If valid image creation, return true, 1, ect., else return None
+
 def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
     spot_track_prefix = "spotify:track:"
 
@@ -79,17 +87,18 @@ def create_cluster_playlist(songs_to_add, playlist_info, spotify_client):
     playlist_id = playlist['id']
 
     # Add image to playlist
-    get_and_save_playlist_image(playlist_info['description'])
-    image_path = "ai_image.jpg"
-    # Read the image and encode it to base64
-    with open(image_path, "rb") as image_file:
-      encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+    image_created = get_and_save_playlist_image(playlist_info['description'])
+    if image_created:
+      image_path = "ai_image.jpg"
+      # Read the image and encode it to base64
+      with open(image_path, "rb") as image_file:
+        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-    if sys.getsizeof(encoded_image) < 256000:
-      # Upload the image to the playlist
-      spotify_client.playlist_upload_cover_image(playlist_id, encoded_image)
-    else:
-      print("Image was too large for playlist")
+      if sys.getsizeof(encoded_image) < 256000:
+        # Upload the image to the playlist
+        spotify_client.playlist_upload_cover_image(playlist_id, encoded_image)
+      else:
+        print("Image was too large for playlist")
 
     # Add tracks to the playlist
     track_uris = []
