@@ -614,6 +614,7 @@ def setup(database_songs):
     saved_songs_list = get_spotify_songs(database_songs, sp_client)
     
     user_songs = album_songs_list + playlist_songs_list + saved_songs_list
+    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
     sp_user_id = sp_client.me()['id']
     #todo: put in better spot that utilizes a first time flag
     generate_lyric_files(database_songs, user_songs, sp_user_id)
