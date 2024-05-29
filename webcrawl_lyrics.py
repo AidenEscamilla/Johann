@@ -93,11 +93,11 @@ def process_songs(song_list, song_db, spotify_client):
         
         # clean artist
         artist = anyascii(artist)   # these are from spotify, not ascii guaranteed
-        artist = re.sub('[/](?=[0-9])', '-', artist)
+        artist = re.sub('[/](?=[0-9])', ' ', artist)
         # artist = re.sub('[Ff]eat.*', '', artist)     #fixes formating from song titles
-        artist = re.sub('\'|[?.!$+,/]|\[.*\]|\(feat*\)|[()]', '', artist)
+        artist = re.sub('\'|[?.!$+,/<;]|\[.*\]|\(feat*\)|[()]', '', artist)
         artist = re.sub('[&]', 'and', artist)
-        artist = re.sub('[:]', '', artist) 
+        artist = re.sub('[:]', '', artist)
         artist = re.sub('-[*-]', '', artist)
         artist = re.sub(' +', ' ', artist)
         artist = re.sub('(?<=\d).(?=\d)', '', artist) # Remove decimal in numbers
@@ -108,9 +108,9 @@ def process_songs(song_list, song_db, spotify_client):
         title = re.sub('[/](?=[0-9])', ' ', title)
         # title = re.sub('[Ff]eat.*', '', title)     #fixes formating from song titles
         title = re.sub('\'', '', title)     #fixes formating from song titles #CHECK IF WITH WORKS
-        title = re.sub('[?.!,+$<]', '', title)     
-        title = re.sub('\[.*\]', '', title)     
-        title = re.sub('\(feat*\)|\(with*\)', '', title)     
+        title = re.sub('[?.!,+$<;]', '', title)     
+        title = re.sub('\[.*\]', '', title)    # Remove anything between square brackets 
+        title = re.sub('\(feat.*\)|\(with.*\)|\(ft.*\)', '', title)     
         title = re.sub('[()]', '', title)     
         title = re.sub('[/-]', ' ', title)     #fixes formating from song titles
         title = re.sub('[&]', 'and', title)
