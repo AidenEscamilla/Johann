@@ -30,7 +30,7 @@ This project addresses the issue by combining data from the Spotify API, Genius.
 
 
 ## Design process
-- Current stage of development: 6. Lyrics Extraction and Storage
+- Current stage of development: 12 & 13. Tests & Documentation
 ### 1. Conceptualization
 
 Define the project's objectives, focusing on creating a music recommendation system based on sentiment analysis of song lyrics. Identify the need for a web crawler, sentiment analysis algorithm, and integration with Spotify, Genius.com, and ChatGpt.
