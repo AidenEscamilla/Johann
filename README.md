@@ -48,13 +48,19 @@ This project addresses the issue by combining data from the Spotify API, Genius.
    pip install -r requirements.txt
    ```
 2. Set up Spotify API credentials.
-3. Run the main program:
+   - Go to the spotify [developers page](https://developer.spotify.com/). Create an account, a project (spotify calls it an 'app'), go to 'settings', and you'll find the client ID & client secret for your API calls.
+
+3. Set up postgres: Schema file [here](https://github.com/AidenEscamilla/Johann/blob/9157c778074503d705f5e2c29c608d1a36a3fa64/schema.sql)
+
+4. Set up [.env file](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env)
+
+5. Run the main program:
 
    ```bash
    python3 RecommendingRobot.py
    ```
 
-4. Follow on-screen instructions to authenticate Spotify and initiate the recommendation process.
+7. Follow on-screen instructions to authenticate Spotify and initiate the recommendation process. 
 
 ## Tech Stack
 
