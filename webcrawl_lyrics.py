@@ -95,7 +95,7 @@ def process_songs(song_list, song_db, spotify_client):
         artist = anyascii(artist)   # these are from spotify, not ascii guaranteed
         artist = re.sub('[/](?=[0-9])', ' ', artist)
         # artist = re.sub('[Ff]eat.*', '', artist)     #fixes formating from song titles
-        artist = re.sub('\'|[?.!$+,/<;]|\[.*\]|\(feat*\)|[()]', '', artist)
+        artist = re.sub('\'|[?.!$+,/<;{}]|\[.*\]|\(feat*\)|[()]', '', artist)
         artist = re.sub('[&]', 'and', artist)
         artist = re.sub('[:]', '', artist)
         artist = re.sub('-[*-]', '', artist)
