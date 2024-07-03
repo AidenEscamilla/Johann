@@ -2,7 +2,7 @@
 ![image (8)](https://github.com/AidenEscamilla/Johann/assets/66649961/4ca99d53-2a6b-480c-aa0f-9ea68668d4b4)
 
 
-# Lyric-based Music Recommendation System
+# Lyric-based Music Recommendation System 🎵
 
 ## Project Title: **J.O.H.A.N.N** (joˈhan)
 **Just One Hip Algorithm for Navigating Narratives**
@@ -31,7 +31,7 @@ Have you ever wondered whether your friends pay more attention to the lyrics or 
 
 ---
 
-## [Design Process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0)
+## [Design Process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0) 🛠️
 
 **Current stage of development:** 
 - 12 & 13. Tests & Documentation
@@ -40,12 +40,12 @@ Have you ever wondered whether your friends pay more attention to the lyrics or 
 
 ## Features
 
-- **Spotify Integration**: Fetches a user's saved songs from Spotify to create a personalized music library.
+- **Spotify Integration**: Fetches a user's saved songs from Spotify to create a personalized music library. 🎧
 - **Lyrics Extraction**: Web-crawls Genius.com to extract lyrics for each song in the library.
-- **Sentiment Analysis**: Analyzes the sentiment of song lyrics to determine emotional tones.
+- **Sentiment Analysis**: Analyzes the sentiment of song lyrics to determine emotional tones. ❤️
 - **Playlist Generation**: Generates a playlist title and description based on the cluster of songs.
 - **Playlist Picture**: Generates a playlist picture based on the title and description.
-- **Recommendation Engine**: Provides personalized song recommendations based on similar sentiment analysis on a single song.
+- **Recommendation Engine**: Provides personalized song recommendations based on similar sentiment analysis on a single song.🔍
 
 ---
 
@@ -107,16 +107,16 @@ Have you ever wondered whether your friends pay more attention to the lyrics or 
 
 ## Tech Stack
 
-**Database:** Postgres
+**Database:** Postgres 🗄️
 
-**Program:** Python
+**Program:** Python 🐍
 
 ---
 
 ## Technologies Used
 
-- Spotify API
-- Selenium (for dynamic web crawling)
-- Beautiful Soup (for static web crawling)
-- Clustering algorithms
-- ChatGPT API
+- Spotify API 🎵
+- Selenium (for dynamic web crawling) 🌐
+- Beautiful Soup (for static web crawling) 🍲
+- Clustering algorithms 📊
+- ChatGPT API 🤖
