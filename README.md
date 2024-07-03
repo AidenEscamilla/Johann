@@ -5,7 +5,7 @@
 # Lyric-based Music Recommendation System
 
 ## Project Title: **J.O.H.A.N.N** (joˈhan)
-**Jukebox Orchestrator: a Harmonic Analytics, Navigational Nexus**
+**Just One Hip Algorithm for Navigating Narratives**
 
 ---
 
