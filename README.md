@@ -45,7 +45,7 @@ Have you ever wondered whether your friends pay more attention to the lyrics or 
 - **Sentiment Analysis**: Analyzes the sentiment of song lyrics to determine emotional tones. ❤️
 - **Playlist Generation**: Generates a playlist title and description based on the cluster of songs.
 - **Playlist Picture**: Generates a playlist picture based on the title and description.
-- **Recommendation Engine**: Provides personalized song recommendations based on similar sentiment analysis on a single song.🔍
+- **Recommendation Engine**: Provides personalized song recommendations based on similar sentiment analysis on a single song. 🔍
 
 ---
 
