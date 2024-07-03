@@ -2,36 +2,41 @@
 ![image (8)](https://github.com/AidenEscamilla/Johann/assets/66649961/4ca99d53-2a6b-480c-aa0f-9ea68668d4b4)
 
 
-
 # Lyric-based Music Recommendation System
-## Project Title: J.O.H.A.N.N (joˈhan)
+
+## Project Title: **J.O.H.A.N.N** (joˈhan)
 **Jukebox Orchestrator: a Harmonic Analytics, Navigational Nexus**
+
+---
 
 ## Overview
 
-The Lyric-based Music Recommendation System is a project aimed at providing personalized music recommendations by analyzing the sentiment of song lyrics. The system utilizes the Spotify API to gather a user's saved songs, web-crawls Genius.com to extract lyrics, and employs GPT sentiment analysis to suggest similar songs with matching emotional tones.
+The Lyric-based Music Recommendation System, J.O.H.A.N.N, aims to provide personalized music recommendations by analyzing the sentiment of song lyrics. Utilizing the Spotify API to gather a user's saved songs, web-crawling Genius.com to extract lyrics, and employing GPT sentiment analysis, the system suggests songs with matching emotional tones.
+
+---
 
 ## Table of Contents
 
 - [Background](#background)
-- [Design process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0)
+- [Design Process](#design-process)
 - [Features](#features)
 - [Usage](#usage)
 - [Technologies Used](#technologies-used)
 
+---
+
 ## Background
 
-Try asking your friends whether they listen to the lyrics or instrumental (beat included) part of a song more. Less often you find people who focus on just the lyrics of a song.
+Have you ever wondered whether your friends pay more attention to the lyrics or the instrumental part of a song? Many focus on the beat, leaving lyric enthusiasts like me in the dark when it comes to recommendation algorithms. This project addresses that gap by creating a sentiment-driven music recommendation system that combines data from the Spotify API, Genius.com, and ChatGPT.
 
-I am one of those people.
+---
 
-With the abundance of music available on streaming platforms like Spotify, users often face the challenge of discovering new songs that align with their lyrical preferences. All the data gathered on songs tends to fall around what the song sounds like, leaving us lyrics searchers in the dark and left out of recommendation algorithms.\
-This project addresses the issue by combining data from the Spotify API, Genius.com, and ChatGPT to create a sentiment-driven music recommendation system.
+## [Design Process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0)
 
+**Current stage of development:** 
+- 12 & 13. Tests & Documentation
 
-## [Design process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0)
-- Current stage of development: 12 & 13. Tests & Documentation
-
+---
 
 ## Features
 
@@ -42,58 +47,71 @@ This project addresses the issue by combining data from the Spotify API, Genius.
 - **Playlist Picture**: Generates a playlist picture based on the title and description.
 - **Recommendation Engine**: Provides personalized song recommendations based on similar sentiment analysis on a single song.
 
+---
+
 ## Usage
-1. Install dependencies:
+
+1. **Install dependencies:**
    ```bash
    pip3 install -r requirements.txt
    ```
-2. Set up Spotify API credentials.
-   - Go to the spotify [developers page](https://developer.spotify.com/). Create an account, a project (spotify calls it an 'app'), go to 'settings', and you'll find the client ID & client secret for your API calls.
 
-3. Set up postgres: Schema file [here](https://github.com/AidenEscamilla/Johann/blob/9157c778074503d705f5e2c29c608d1a36a3fa64/schema.sql)
+2. **Set up Spotify API credentials:**
+   - Visit the [Spotify Developers page](https://developer.spotify.com/). Create an account, a project (Spotify calls it an 'app'), and find the client ID & client secret in 'settings'.
 
-4. Set up [.env file](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env)
+3. **Set up Postgres:**
+   - Use the provided [schema file](https://github.com/AidenEscamilla/Johann/blob/9157c778074503d705f5e2c29c608d1a36a3fa64/schema.sql).
 
-5. Run the webcrawler:
+4. **Set up .env file:**
+   - Follow the instructions [here](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env).
 
+5. **Run the webcrawler:**
    ```bash
    python3 webcrawl_lyrics.py
    ```
 
-6. Follow on-screen instructions to authenticate Spotify and initiate the recommendation process.
-7. Run the summary making program:
+6. **Authenticate Spotify and initiate the recommendation process:**
+   - Follow the on-screen instructions.
 
+7. **Run the summary making program:**
    ```bash
    python3 summary.py --generate_batch
    ```
-   This will send the batch off for the 24h period. You can run a status check at any time with:
+   - Check the status at any time:
    ```bash
    python3 summary.py --check_status
    ```
-   Note: This will check the status every 10 min. so you might want to run it in the background or use 'ctrl c' to manually stop.
-8. Run the embeddings:
+   - Note: This checks status every 10 min. Use 'ctrl+c' to stop manually.
+
+8. **Run the embeddings:**
    ```bash
    python3 embeddings.py
    ```
-9. Run the mapping with HDB or K-Means:\
-   Usage: `python3 mapping.py --dense <CLUSTER_MIN_SIZE_INT> <CLUSTER_MIN_SAMPLES_INT>' OR 'python3 mapping.py --kmeans`
-   
-   example:
+
+9. **Run the mapping with HDB or K-Means:**
+   ```bash
+   python3 mapping.py --dense <CLUSTER_MIN_SIZE_INT> <CLUSTER_MIN_SAMPLES_INT>
+   ```
+   - Example:
    ```bash
    python3 mapping.py --dense 10 4
    ```
-   Note:
-   - Run this a few times, looking at the mappings and dial in the right clusters you want.
-   - Every running of this program will overwrite/save the cluster label for your songs
-11. Once you have a map you like create the playlists:
+   - Note: Run multiple times to dial in the right clusters.
+
+11. **Create the playlists:**
    ```bash
    python3 make_cluster_playlists.py
    ```
+
+---
+
 ## Tech Stack
 
 **Database:** Postgres
 
 **Program:** Python
+
+---
 
 ## Technologies Used
 
@@ -101,4 +119,4 @@ This project addresses the issue by combining data from the Spotify API, Genius.
 - Selenium (for dynamic web crawling)
 - Beautiful Soup (for static web crawling)
 - Clustering algorithms
-- ChatGpt API
+- ChatGPT API
