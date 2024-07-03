@@ -27,7 +27,24 @@ class MockSongs:
             }
         
         return mock_token
+    
+    def is_song_in_database(self, search_params):
+        if search_params['name'] == 'valid_name':
+            return True
+        else:
+            return False
 
+    def is_song_in_not_found(self, search_params):
+        if search_params['name'] == 'invalid_name':
+            return True
+        else:
+            return False
+
+    def find_song(self, search_params):
+        return {'url' : 'url_found_in_database'}
+
+    def insert_user_song(self, spotify_user_id, song_url):
+        pass
 
 class Songs:
 # conn = psycopg2.connect(database="johann_songs",
