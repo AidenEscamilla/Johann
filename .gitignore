@@ -23,3 +23,5 @@ ai_image.jpg
 batch_data.jsonl
 batch_results.jsonl
 
+# ignore my personal .env variables
+.env
