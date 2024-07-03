@@ -14,7 +14,7 @@ The Lyric-based Music Recommendation System is a project aimed at providing pers
 ## Table of Contents
 
 - [Background](#background)
-- [Design process]([#design-process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0))
+- [Design process](https://github.com/AidenEscamilla/Johann/wiki/Design-1.0)
 - [Features](#features)
 - [Usage](#usage)
 - [Technologies Used](#technologies-used)
