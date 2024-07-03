@@ -45,7 +45,7 @@ This project addresses the issue by combining data from the Spotify API, Genius.
 ## Usage
 1. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip3 install -r requirements.txt
    ```
 2. Set up Spotify API credentials.
    - Go to the spotify [developers page](https://developer.spotify.com/). Create an account, a project (spotify calls it an 'app'), go to 'settings', and you'll find the client ID & client secret for your API calls.
@@ -54,14 +54,41 @@ This project addresses the issue by combining data from the Spotify API, Genius.
 
 4. Set up [.env file](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env)
 
-5. Run the main program:
+5. Run the webcrawler:
 
    ```bash
-   python3 RecommendingRobot.py
+   python3 webcrawl_lyrics.py
    ```
 
-7. Follow on-screen instructions to authenticate Spotify and initiate the recommendation process. 
+6. Follow on-screen instructions to authenticate Spotify and initiate the recommendation process.
+7. Run the summary making program:
 
+   ```bash
+   python3 summary.py --generate_batch
+   ```
+   This will send the batch off for the 24h period. You can run a status check at any time with:
+   ```bash
+   python3 summary.py --check_status
+   ```
+   Note: This will check the status every 10 min. so you might want to run it in the background or use 'ctrl c' to manually stop.
+8. Run the embeddings:
+   ```bash
+   python3 embeddings.py
+   ```
+9. Run the mapping with HDB or K-Means:\
+   Usage: `python3 mapping.py --dense <CLUSTER_MIN_SIZE_INT> <CLUSTER_MIN_SAMPLES_INT>' OR 'python3 mapping.py --kmeans`
+   
+   example:
+   ```bash
+   python3 mapping.py --dense 10 4
+   ```
+   Note:
+   - Run this a few times, looking at the mappings and dial in the right clusters you want.
+   - Every running of this program will overwrite/save the cluster label for your songs
+11. Once you have a map you like create the playlists:
+   ```bash
+   python3 make_cluster_playlists.py
+   ```
 ## Tech Stack
 
 **Database:** Postgres
