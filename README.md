@@ -63,7 +63,7 @@ Have you ever wondered whether your friends pay more attention to the lyrics or 
    - Use the provided [schema file](https://github.com/AidenEscamilla/Johann/blob/9157c778074503d705f5e2c29c608d1a36a3fa64/schema.sql).
 
 4. **Set up .env file:**
-   - Follow the instructions [here](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env).
+   - Follow the instructions in the [.env file](https://github.com/AidenEscamilla/Johann/blob/2176460b0202e98336e1d181f470626782e2b273/.env).
 
 5. **Run the webcrawler:**
    ```bash
