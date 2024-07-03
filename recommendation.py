@@ -117,8 +117,7 @@ def main():
       print(f"I found \"{song_found['name']}: {song_found['artist']}\" in the database.")
       is_correct_song = input("Is this the correct song? (yes, no): ").lower()
       if is_correct_song == 'yes':
-        playlist_length = 0 # Seems to += input
-        playlist_length = input("And how many recommendations would you like in the playlist?: ")
+        playlist_length = int(input("And how many recommendations would you like in the playlist?: "))
         while not is_positive_int(playlist_length): # Clean user input
           playlist_length = input("Not a positive number. Enter the number of recommendations you'd like: ")
 
