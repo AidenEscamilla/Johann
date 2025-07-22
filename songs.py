@@ -366,11 +366,11 @@ class Songs:
     
     def get_all_user_cluster_songs(self, user_id):
         cursor = self.connection.cursor()
-        cursor.execute('SELECT s.spot_id, oai.summary, s.cluster \
-                        FROM songs as s \
-                        INNER JOIN user_songs as us ON s.url = us.url \
-                        INNER JOIN open_ai_data as oai ON s.url = oai.url \
-                        WHERE us.user_id = %s AND s.cluster IS NOT NULL', [user_id])
+        cursor.execute('SELECT s.spot_id, oai.summary, us.cluster \
+                        FROM user_songs as us \
+                        INNER JOIN songs as s ON us.url = s.url \
+                        INNER JOIN open_ai_data as oai ON us.url = oai.url \
+                        WHERE us.user_id = %s AND us.cluster IS NOT NULL', [user_id])
         results = cursor.fetchall()
 
         return results
@@ -502,7 +502,7 @@ class Songs:
     def add_cluster_to_song(self, url, cluster_number):
         cursor = self.connection.cursor()
 
-        cursor.execute('INSERT INTO songs(url, cluster) \
+        cursor.execute('INSERT INTO user_songs(url, cluster) \
                        VALUES(%s, %s) \
                        ON CONFLICT(url) DO UPDATE SET \
                        cluster = EXCLUDED.cluster', [url, cluster_number])

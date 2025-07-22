@@ -126,7 +126,7 @@ def add_density_cluster_labels_to_df(df, inputted_min_cluster_size=15, inputted_
   scaler = StandardScaler()
   scaled_data = scaler.fit_transform(mapped_embedings)  #normalize data
   # clusterer = hdbscan.HDBSCAN(min_cluster_size=4, min_samples = 2) # this is really good for tiny clusters
-  clusterer = hdbscan.HDBSCAN(min_cluster_size=inputted_min_cluster_size, min_samples = inputted_min_samples) # playlist cluster parameters
+  clusterer = hdbscan.HDBSCAN(min_cluster_size=inputted_min_cluster_size, min_samples = inputted_min_samples, cluster_selection_epsilon=1.8) # playlist cluster parameters
   cluster_labels = clusterer.fit_predict(mapped_embedings)  # predict clusters
 
   # print number of clusters
@@ -143,7 +143,7 @@ def add_kmeans_cluster_labels_to_df(df):
   scaler = StandardScaler()
   scaled_data = scaler.fit_transform(mapped_embedings)  #normalize data
 
-  kmeans = KMeans(n_clusters=13, random_state=24)  # Setting random_state to ensure reproducibility
+  kmeans = KMeans(n_clusters=7, random_state=24)  # Setting random_state to ensure reproducibility
   cluster_labels = kmeans.fit_predict(scaled_data)
 
   # Put cluster label to df
@@ -195,7 +195,7 @@ def main():
     else: # can only be --dense because of the command line commands
       add_density_cluster_labels_to_df(embeddings_df)
 
-  # Use 6 most middle summaries to create a title and description
+  # # Use 6 most middle summaries to create a title and description
   cluster_summaries = get_cluster_summaries(embeddings_df)
   playlists_data = get_playlist_title_description(embeddings_df, cluster_summaries)
   
