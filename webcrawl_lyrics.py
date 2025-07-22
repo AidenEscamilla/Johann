@@ -42,11 +42,11 @@ headers keep it from being denied as a bot
 The rest help reduce errors (but may be unnecessary)
 '''
 def get_options():
-  headers = {'User-Agent': 'AppleWebKit/537.36'}
+  headers = {'User-Agent': 'AppleWebKit/537.36'}    # Important! This is needed to not get flagged as a bot
   chromedriver_autoinstaller.install()
   op = webdriver.ChromeOptions()
   op.add_argument('--disable-browser-side-navigation')
-  op.add_argument("--headless=new")
+#   op.add_argument("--headless=new")
   op.add_argument(f"--headers={headers}")
   op.add_argument("--disable-third-party-cookies")
   op.add_argument("--pageLoadStrategy=normal")
@@ -415,6 +415,18 @@ def get_spotify_songs(song_db, spotify_client):
 Takes a url and web scrapes the lyrics
 Returns the lyrics found (including empty string for no lyrics), or None on Error
 '''
+import urllib
+from urllib.request import urlopen
+from urllib.request import Request
+from urllib.parse import quote
+from bs4 import BeautifulSoup
+import re
+from nltk.tokenize import sent_tokenize
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
+
+
 def get_lyrics(lyric_url):
     headers = {'User-Agent': 'AppleWebKit/537.36'}
     req = Request(url=lyric_url, headers=headers)
@@ -425,18 +437,22 @@ def get_lyrics(lyric_url):
         print("OOpps http error for:", lyric_url)   # Return nothing on error
         return None
   
-
     lyric_soup = BeautifulSoup(html, features="html.parser")    # Soup it
-    containers = lyric_soup.find_all('div', {"data-lyrics-container": True})    # This is the specific lyric box AS OF NOW on Genius.com
+
+    exclude_these_content_boxes = lyric_soup.find_all('div', {"data-exclude-from-selection": True}) # Find unnecessary headers & extras
+    for content in exclude_these_content_boxes: # Remove the extras from the soup parse tree
+        content.decompose()
+    
+    containers = lyric_soup.find_all('div', {"data-lyrics-container": True})    # This is the specific lyric box AS OF NOW (7/21/25) on Genius.com
     text = ''
     for content in containers:  # Somtimes it's multiple boxes
-                text += content.getText()   # Appened lyrics
+        text += content.getText()   # Appened lyrics
 
     #txt clean up
     text = re.sub('\[[^\]]*\]', '', text)               #Delete everything between [] including brackets like '[Verse 1]', '[Chrous]', ect.
     text = re.sub('(?<=[?!])(?=[A-Z])', '. ', text)      #fixes lines that end in ?
     text = re.sub('\'(?=[A-Z])', '. ', text)         #Fixes "country" ' thats used to start a word e.x: 'Cause
-    text = re.sub('(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z])', '. ', text)          #space out text because the <br /> is thrown away leaving words touching and hard to tokenize. 
+    text = re.sub('(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z])|(?<=[\)])(?=[A-Z])', '. ', text)          #space out text because the <br /> is thrown away leaving words touching and hard to tokenize. 
                                                                                     #Buuut you can seperate by capital letters because every new line they capitalize
     text = text.replace('wanna', 'want to')         #Fix wanna to want to
     text = re.sub('[Cc]an\'t', 'can not', text)     #replace can't or Can't with can not because word tokenize stops reading past ' because it's not alpha
@@ -606,14 +622,15 @@ def setup(database_songs):
     album_ids = get_spotify_albums(sp_client)
     album_songs_list = get_all_album_songs(album_ids, database_songs, sp_client)
     
-    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
-    playlist_id_list = get_spotify_playlists(sp_client)
-    playlist_songs_list = get_playlist_songs(playlist_id_list, database_songs, sp_client)
+    # sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
+    # playlist_id_list = get_spotify_playlists(sp_client)
+    # playlist_songs_list = get_playlist_songs(playlist_id_list, database_songs, sp_client)
     
-    sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
-    saved_songs_list = get_spotify_songs(database_songs, sp_client)
+    # sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
+    # saved_songs_list = get_spotify_songs(database_songs, sp_client)
     
-    user_songs = album_songs_list + playlist_songs_list + saved_songs_list
+    # user_songs = album_songs_list + playlist_songs_list + saved_songs_list
+    user_songs = album_songs_list
     sp_client = refresh_user_oath_token(database_songs, sp_client, sp_oath)
     sp_user_id = sp_client.me()['id']
     #todo: put in better spot that utilizes a first time flag
