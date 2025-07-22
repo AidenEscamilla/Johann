@@ -2,12 +2,13 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.2 (Homebrew)
--- Dumped by pg_dump version 16.2
+-- Dumped from database version 17.5 (Homebrew)
+-- Dumped by pg_dump version 17.5 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -17,6 +18,15 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: aidenescamilla
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO aidenescamilla;
+
+--
 -- Name: vector; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -24,7 +34,7 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner: -
+-- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION vector IS 'vector data type and ivfflat and hnsw access methods';
@@ -35,7 +45,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: cluster_info; Type: TABLE; Schema: public; Owner: -
+-- Name: cluster_info; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.cluster_info (
@@ -46,8 +56,10 @@ CREATE TABLE public.cluster_info (
 );
 
 
+ALTER TABLE public.cluster_info OWNER TO aidenescamilla;
+
 --
--- Name: lyrics; Type: TABLE; Schema: public; Owner: -
+-- Name: lyrics; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.lyrics (
@@ -56,8 +68,10 @@ CREATE TABLE public.lyrics (
 );
 
 
+ALTER TABLE public.lyrics OWNER TO aidenescamilla;
+
 --
--- Name: not_found; Type: TABLE; Schema: public; Owner: -
+-- Name: not_found; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.not_found (
@@ -69,8 +83,10 @@ CREATE TABLE public.not_found (
 );
 
 
+ALTER TABLE public.not_found OWNER TO aidenescamilla;
+
 --
--- Name: oath_flow; Type: TABLE; Schema: public; Owner: -
+-- Name: oath_flow; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.oath_flow (
@@ -84,8 +100,10 @@ CREATE TABLE public.oath_flow (
 );
 
 
+ALTER TABLE public.oath_flow OWNER TO aidenescamilla;
+
 --
--- Name: open_ai_data; Type: TABLE; Schema: public; Owner: -
+-- Name: open_ai_data; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.open_ai_data (
@@ -96,21 +114,24 @@ CREATE TABLE public.open_ai_data (
 );
 
 
+ALTER TABLE public.open_ai_data OWNER TO aidenescamilla;
+
 --
--- Name: songs; Type: TABLE; Schema: public; Owner: -
+-- Name: songs; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.songs (
     url character varying NOT NULL,
     name character varying,
     artist character varying,
-    spot_id character varying,
-    cluster integer
+    spot_id character varying
 );
 
 
+ALTER TABLE public.songs OWNER TO aidenescamilla;
+
 --
--- Name: spotify_song_info; Type: TABLE; Schema: public; Owner: -
+-- Name: spotify_song_info; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.spotify_song_info (
@@ -118,8 +139,10 @@ CREATE TABLE public.spotify_song_info (
 );
 
 
+ALTER TABLE public.spotify_song_info OWNER TO aidenescamilla;
+
 --
--- Name: spotify_user; Type: TABLE; Schema: public; Owner: -
+-- Name: spotify_user; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.spotify_user (
@@ -128,18 +151,23 @@ CREATE TABLE public.spotify_user (
 );
 
 
+ALTER TABLE public.spotify_user OWNER TO aidenescamilla;
+
 --
--- Name: user_songs; Type: TABLE; Schema: public; Owner: -
+-- Name: user_songs; Type: TABLE; Schema: public; Owner: aidenescamilla
 --
 
 CREATE TABLE public.user_songs (
     user_id character varying NOT NULL,
-    url character varying NOT NULL
+    url character varying NOT NULL,
+    cluster integer
 );
 
 
+ALTER TABLE public.user_songs OWNER TO aidenescamilla;
+
 --
--- Name: cluster_info cluster_info_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: cluster_info cluster_info_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.cluster_info
@@ -147,15 +175,15 @@ ALTER TABLE ONLY public.cluster_info
 
 
 --
--- Name: not_found incorrect_url_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lyrics match_url_to_lyrics; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
-ALTER TABLE ONLY public.not_found
-    ADD CONSTRAINT incorrect_url_unique UNIQUE (url);
+ALTER TABLE ONLY public.lyrics
+    ADD CONSTRAINT match_url_to_lyrics UNIQUE (url);
 
 
 --
--- Name: not_found not_found_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: not_found not_found_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.not_found
@@ -163,7 +191,7 @@ ALTER TABLE ONLY public.not_found
 
 
 --
--- Name: oath_flow oath_flow_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: oath_flow oath_flow_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.oath_flow
@@ -171,7 +199,7 @@ ALTER TABLE ONLY public.oath_flow
 
 
 --
--- Name: open_ai_data open_ai_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: open_ai_data open_ai_data_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.open_ai_data
@@ -179,7 +207,7 @@ ALTER TABLE ONLY public.open_ai_data
 
 
 --
--- Name: songs songs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: songs songs_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.songs
@@ -187,15 +215,15 @@ ALTER TABLE ONLY public.songs
 
 
 --
--- Name: spotify_song_info spotify_info_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spotify_song_info spotify_song_info_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.spotify_song_info
-    ADD CONSTRAINT spotify_info_pkey PRIMARY KEY (spot_id);
+    ADD CONSTRAINT spotify_song_info_pkey PRIMARY KEY (spot_id);
 
 
 --
--- Name: spotify_user spotify_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spotify_user spotify_user_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.spotify_user
@@ -203,15 +231,7 @@ ALTER TABLE ONLY public.spotify_user
 
 
 --
--- Name: lyrics url_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.lyrics
-    ADD CONSTRAINT url_unique UNIQUE (url);
-
-
---
--- Name: user_songs user_songs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: user_songs user_songs_pkey; Type: CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.user_songs
@@ -219,15 +239,15 @@ ALTER TABLE ONLY public.user_songs
 
 
 --
--- Name: oath_flow fk_oath_spot_user; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: cluster_info cluster_info_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
-ALTER TABLE ONLY public.oath_flow
-    ADD CONSTRAINT fk_oath_spot_user FOREIGN KEY (user_id) REFERENCES public.spotify_user(user_id);
+ALTER TABLE ONLY public.cluster_info
+    ADD CONSTRAINT cluster_info_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.spotify_user(user_id);
 
 
 --
--- Name: lyrics lyrics_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lyrics lyrics_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.lyrics
@@ -235,7 +255,15 @@ ALTER TABLE ONLY public.lyrics
 
 
 --
--- Name: open_ai_data open_ai_data_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: oath_flow oath_flow_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aidenescamilla
+--
+
+ALTER TABLE ONLY public.oath_flow
+    ADD CONSTRAINT oath_flow_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.spotify_user(user_id);
+
+
+--
+-- Name: open_ai_data open_ai_data_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: aidenescamilla
 --
 
 ALTER TABLE ONLY public.open_ai_data
@@ -243,19 +271,11 @@ ALTER TABLE ONLY public.open_ai_data
 
 
 --
--- Name: user_songs user_songs_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: aidenescamilla
 --
 
-ALTER TABLE ONLY public.user_songs
-    ADD CONSTRAINT user_songs_url_fkey FOREIGN KEY (url) REFERENCES public.songs(url);
-
-
---
--- Name: user_songs user_songs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.user_songs
-    ADD CONSTRAINT user_songs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.spotify_user(user_id);
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
