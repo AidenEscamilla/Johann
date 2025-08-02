@@ -63,7 +63,7 @@ All this bad, bad news
 '''
 
 def write_batch_file(database_client, spotify_client):
-  embedding_model = "gpt-3.5-turbo"
+  embedding_model = "text-embedding-3-small"
   user_id = spotify_client.me()['id']
   songs = database_client.all_user_songs_missing_summaries(user_id)
 
@@ -181,7 +181,7 @@ def main():
       # This is the default and can be omitted
       api_key=os.environ.get("OPENAI_API_KEY")
     )
-  embedding_model = "gpt-3.5-turbo"
+  embedding_model = "text-embedding-3-small"
   db_client = Songs()
   sp_client = get_fresh_spotify_client(db_client)
 
