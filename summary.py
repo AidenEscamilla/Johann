@@ -63,12 +63,21 @@ All this bad, bad news
 '''
 
 def write_batch_file(database_client, spotify_client):
-  embedding_model = "text-embedding-3-small"
+  embedding_model = "gpt-4o-mini"
   user_id = spotify_client.me()['id']
   songs = database_client.all_user_songs_missing_summaries(user_id)
 
   if os.path.exists("batch_data.jsonl"):  # Clear file for new batch
     os.remove("batch_data.jsonl")
+
+  song_batches = [songs]
+  songs_per_batch = 1800
+
+  if len(songs) > songs_per_batch:
+    song_batches = [songs[i:i + songs_per_batch] for i in range(0, len(songs), songs_per_batch)]
+  
+  print(song_batches)
+  sys.exit(1)
 
   for song in songs:
     print(f"{song[1]} : {song[2]}")
@@ -181,7 +190,7 @@ def main():
       # This is the default and can be omitted
       api_key=os.environ.get("OPENAI_API_KEY")
     )
-  embedding_model = "text-embedding-3-small"
+  embedding_model = "gpt-4o-mini"
   db_client = Songs()
   sp_client = get_fresh_spotify_client(db_client)
 
