@@ -76,7 +76,9 @@ def write_batch_file(database_client, spotify_client):
   if len(songs) > songs_per_batch:
     song_batches = [songs[i:i + songs_per_batch] for i in range(0, len(songs), songs_per_batch)]
   
-  print(song_batches)
+  for batch in song_batches:
+    print(len(batch))
+  print("batches total: ", len(song_batches))
   sys.exit(1)
 
   for song in songs:
