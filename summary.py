@@ -62,13 +62,10 @@ All this bad, bad news
 - Output: "The poem is a heartfelt expression of the speaker's deep emotional turmoil and longing for a romantic partner. The speaker is grappling with the pain of unrequited love, as they express their inability to move on from the person they desire. The speaker's feelings are intense and consuming, as they describe feeling held down by a string and unable to breathe due to the overwhelming emotions. The speaker also expresses a desire for a future with this person, envisioning a happy home and a family together. However, the speaker is also aware of the uncertainty and confusion in their relationship, as they question whether their love interest loves somebody else and express frustration with the lack of clarity. Despite the challenges, the speaker is willing to endure the confusion and pain, as they express a willingness to be clueless with the person they love. The poem captures the complexity of love and the deep emotional impact it can have on an individual"
 '''
 
-def write_batch_file(database_client, spotify_client):
+def write_batch_file(database_client, spotify_client, ai_client):
   embedding_model = "gpt-4o-mini"
   user_id = spotify_client.me()['id']
   songs = database_client.all_user_songs_missing_summaries(user_id)
-
-  if os.path.exists("batch_data.jsonl"):  # Clear file for new batch
-    os.remove("batch_data.jsonl")
 
   song_batches = [songs]
   songs_per_batch = 1800
@@ -77,33 +74,34 @@ def write_batch_file(database_client, spotify_client):
     song_batches = [songs[i:i + songs_per_batch] for i in range(0, len(songs), songs_per_batch)]
   
   for batch in song_batches:
-    print(len(batch))
-  print("batches total: ", len(song_batches))
-  sys.exit(1)
-
-  for song in songs:
-    print(f"{song[1]} : {song[2]}")
-    url = song[0]
-    lyrics = song[3]
-    single_request = {
-      "custom_id": url,
-      "method": "POST",
-      "url": "/v1/chat/completions",
-      "body": {
-        "model": embedding_model,
-        "messages": [
-          {"role": "system", "content": SYSTEM_SETUP},
-          {"role": "user", "content": lyrics}
-        ],
-        "max_tokens": 1000
+    if os.path.exists("batch_data.jsonl"):  # Clear file for new batch
+        os.remove("batch_data.jsonl")
+    
+    for song in batch:
+      print(f"{song[1]} : {song[2]}")
+      url = song[0]
+      lyrics = song[3]
+      single_request = {
+        "custom_id": url,
+        "method": "POST",
+        "url": "/v1/chat/completions",
+        "body": {
+          "model": embedding_model,
+          "messages": [
+            {"role": "system", "content": SYSTEM_SETUP},
+            {"role": "user", "content": lyrics}
+          ],
+          "max_tokens": 1000
+        }
       }
-    }
 
-    with open("batch_data.jsonl", "a") as f:
-      f.write(json.dumps(single_request))
-      f.write("\n")
+      with open("batch_data.jsonl", "a") as f:
+        f.write(json.dumps(single_request))
+        f.write("\n")
+    
+    generate_batch(ai_client)
 
-def generate_batch(api_client):
+def generate_batch(api_client): # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
   #Create batch object
   batch_input_file = api_client.files.create(
     file=open("batch_data.jsonl", "rb"),
@@ -201,7 +199,7 @@ def main():
     check_batch_status(ai_client, batch_id, db_client)
   elif input_functionality == '--generate_batch': # Second likely
     print("Generating batch...")
-    write_batch_file(db_client, sp_client)
+    write_batch_file(db_client, sp_client, ai_client)
     generate_batch(ai_client) # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
 
 
