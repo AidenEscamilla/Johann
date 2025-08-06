@@ -62,7 +62,7 @@ All this bad, bad news
 - Output: "The poem is a heartfelt expression of the speaker's deep emotional turmoil and longing for a romantic partner. The speaker is grappling with the pain of unrequited love, as they express their inability to move on from the person they desire. The speaker's feelings are intense and consuming, as they describe feeling held down by a string and unable to breathe due to the overwhelming emotions. The speaker also expresses a desire for a future with this person, envisioning a happy home and a family together. However, the speaker is also aware of the uncertainty and confusion in their relationship, as they question whether their love interest loves somebody else and express frustration with the lack of clarity. Despite the challenges, the speaker is willing to endure the confusion and pain, as they express a willingness to be clueless with the person they love. The poem captures the complexity of love and the deep emotional impact it can have on an individual"
 '''
 
-def write_batch_file(database_client, spotify_client, ai_client):
+def write_batch_files(database_client, spotify_client):
   embedding_model = "gpt-4o-mini"
   user_id = spotify_client.me()['id']
   songs = database_client.all_user_songs_missing_summaries(user_id)
@@ -73,8 +73,8 @@ def write_batch_file(database_client, spotify_client, ai_client):
   if len(songs) > songs_per_batch:
     song_batches = [songs[i:i + songs_per_batch] for i in range(0, len(songs), songs_per_batch)]
   
-  for batch in song_batches:
-    if os.path.exists("batch_data.jsonl"):  # Clear file for new batch
+  for batch_num, batch in enumerate(song_batches):
+    if os.path.exists(f"batch_data_{batch_num}.jsonl"):  # Clear file for new batch
         os.remove("batch_data.jsonl")
     
     for song in batch:
@@ -95,31 +95,40 @@ def write_batch_file(database_client, spotify_client, ai_client):
         }
       }
 
-      with open("batch_data.jsonl", "a") as f:
+      with open(f"batch_data_{batch_num}.jsonl", "a") as f:
         f.write(json.dumps(single_request))
         f.write("\n")
     
-    generate_batch(ai_client)
+  return len(song_batches)
 
-def generate_batch(api_client): # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
-  #Create batch object
-  batch_input_file = api_client.files.create(
-    file=open("batch_data.jsonl", "rb"),
-    purpose="batch"
-  )
-  #Get id
-  batch_input_file_id = batch_input_file.id
-  
-  #Send off batch to process
-  full_batch = api_client.batches.create(
-    input_file_id=batch_input_file_id,
-    endpoint="/v1/chat/completions",
-    completion_window="24h",
-    metadata={
-      "description": "Generate summary of lyrics"
-    }
-  )
-  print(full_batch)
+def run_batch_files(api_client, num_batch_files_made, db_client): # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
+  for batch_num in range(num_batch_files_made):
+    #Create batch object
+    batch_input_file = api_client.files.create(
+      file=open(f"batch_data_{batch_num}.jsonl", "rb"),
+      purpose="batch"
+    )
+    #Get id
+    batch_input_file_id = batch_input_file.id
+    
+    #Send off batch to process
+    full_batch = api_client.batches.create(
+      input_file_id=batch_input_file_id,
+      endpoint="/v1/chat/completions",
+      completion_window="24h",
+      metadata={
+        "description": "Generate summary of lyrics"
+      }
+    )
+
+    #Get batch id
+    api_created_id = full_batch.id
+
+    if check_batch_status(api_client, api_created_id, db_client) == True:
+      print(f"batch:{api_created_id} complete")
+      continue
+    else:
+      sys.exit(1) # There was an error in the batches
 
 def get_num_tokens(lyric_string: str) -> int:
   embedding_encoding = "cl100k_base"
@@ -142,13 +151,16 @@ def check_batch_status(api_client, batch_id, db_client):
         print("Inserting to database...")
         batch_results = get_batch_responses("batch_results.jsonl") # Takes file_name as argument
         insert_response_summaries(db_client,batch_results)
-        break # Don't wont 10 min after finished inserting
+        return True # Don't wont 10 min after finished inserting
       else:
         print("Soemthing went wrong. Take a closer look")
-        break # exit while loop
+        return False # exit while loop
     except openai.NotFoundError as e:
       print(f"The batch_id:{batch_id} was incorrect. Please try again with a correct batch_id")
+      return False
     time.sleep(600)
+
+  return False
 
 def get_and_save_batch_results(api_client, batch_id):
   finished_batch_id = api_client.batches.retrieve(batch_id).output_file_id
@@ -197,19 +209,19 @@ def main():
   if input_functionality == '--check_status': # Most likely
     print("Getting status...")
     check_batch_status(ai_client, batch_id, db_client)
-  elif input_functionality == '--generate_batch': # Second likely
-    print("Generating batch...")
-    write_batch_file(db_client, sp_client, ai_client)
-    generate_batch(ai_client) # Check stdout for the Batch(id='<look here>') and manually copy paste that to BATCH_ID if you can
+  elif input_functionality == '--generate_batches': # Second likely
+    print("Generating batches...")
+    num_batch_files_made = write_batch_files(db_client, sp_client)
+    run_batch_files(ai_client, num_batch_files_made, db_client)
 
 
 if __name__ == '__main__':  # Command line flag for desired functionality
-  valid_args = ['--generate_batch', '--check_status']
+  valid_args = ['--generate_batches', '--check_status']
   if len(sys.argv) <= 1:
-    print("No arguments provided. Specify '--generate_batch', or '--check_status <BATCH_ID>'")
+    print("No arguments provided. Specify '--generate_batches', or '--check_status <BATCH_ID>'")
     exit(1)
   elif sys.argv[1] not in valid_args: # input validation
-    print(f"{sys.argv[1]} not a valid argument. Try '--generate_batch', or '--check_status <BATCH_ID>'")
+    print(f"{sys.argv[1]} not a valid argument. Try '--generate_batches', or '--check_status <BATCH_ID>'")
     exit(1)
   elif sys.argv[1] == '--check_status' and len(sys.argv) < 3:
     print("No batch_id included. Correct usage: '--check_status <BATCH_ID_HERE>'")
